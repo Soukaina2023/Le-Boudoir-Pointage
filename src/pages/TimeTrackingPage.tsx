@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, type Dispatch, type SetStateAction } from 'react';
 import type { AppData, Worker, Translations, Lang, SpecialMode, ActiveSession, TimeRecord } from '../types';
 import { formatTime, formatDate, minutesToHHMM, minutesToDisplay, formatDurationHMS, parseTimeToTs, calcWorkMinutes } from '../utils/time';
 import LiveClock from '../components/LiveClock';
@@ -15,9 +15,12 @@ import {
   endWorkSession,
   insertManualTimeRecord,
 } from '../lib/timeTrackingApi';
+import { isDemoMode } from '../lib/supabase';
+import { loadData } from '../utils/storage';
 
 interface Props {
   data: AppData;
+  setData?: Dispatch<SetStateAction<AppData>>;
   currentWorker: Worker;
   t: Translations;
   lang: Lang;
@@ -44,7 +47,7 @@ const DEFAULT_FORM: ManualForm = {
   managerSig: false,
 };
 
-export default function TimeTrackingPage({ data, currentWorker, t, lang, toast }: Props) {
+export default function TimeTrackingPage({ data, setData, currentWorker, t, lang, toast }: Props) {
   const [manualOpen, setManualOpen] = useState(false);
   const [form, setForm] = useState<ManualForm>(DEFAULT_FORM);
   const [liveElapsed, setLiveElapsed] = useState(0);
@@ -71,6 +74,12 @@ export default function TimeTrackingPage({ data, currentWorker, t, lang, toast }
 
   const workerDisplay = (w: Worker) => (lang === 'ar' ? w.name : (w.nameFr || w.name));
   const punchReady = Boolean(targetId && targetWorker);
+
+  const syncAppFromStorage = useCallback(() => {
+    if (!isDemoMode || !setData) return;
+    const d = loadData();
+    if (d) setData(d);
+  }, [setData]);
 
   const refreshTracking = useCallback(async () => {
     if (!targetId) return;
@@ -123,6 +132,7 @@ export default function TimeTrackingPage({ data, currentWorker, t, lang, toast }
       const orgId = await resolveOrganizationId(targetWorker.id);
       await startWork(targetWorker.id, orgId, session.specialMode ?? 'normal');
       await refreshTracking();
+      syncAppFromStorage();
       toast(t.startWork + ' ✓', 'success');
     } catch (e) {
       console.error(e);
@@ -160,6 +170,7 @@ export default function TimeTrackingPage({ data, currentWorker, t, lang, toast }
         officialHoursPerDay,
       });
       await refreshTracking();
+      syncAppFromStorage();
       toast(t.endWork + ' - ' + minutesToDisplay(workMins, t), 'success');
     } catch (e) {
       console.error(e);
@@ -179,6 +190,7 @@ export default function TimeTrackingPage({ data, currentWorker, t, lang, toast }
     try {
       await breakStart(targetWorker.id);
       await refreshTracking();
+      syncAppFromStorage();
       toast(t.startBreak + ' ✓', 'warning');
     } catch (e) {
       console.error(e);
@@ -199,6 +211,7 @@ export default function TimeTrackingPage({ data, currentWorker, t, lang, toast }
       const breakMins = Math.round((Date.now() - session.breakStartTs) / 60000);
       await breakEnd(targetWorker.id, session.breakStartTs, session.totalBreakMins ?? 0);
       await refreshTracking();
+      syncAppFromStorage();
       toast(t.endBreak + ` (${breakMins} ${t.mins})`, 'info');
     } catch (e) {
       console.error(e);
@@ -235,6 +248,7 @@ export default function TimeTrackingPage({ data, currentWorker, t, lang, toast }
         officialHoursPerDay,
       });
       await refreshTracking();
+      syncAppFromStorage();
       toast(t.savedSuccess, 'success');
       setManualOpen(false);
       setForm(DEFAULT_FORM);

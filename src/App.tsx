@@ -4,6 +4,7 @@ import { initData } from './utils/storage';
 import { todayKey } from './utils/time';
 import { translations } from './i18n/translations';
 import { useToast } from './hooks/useToast';
+import { isDemoMode } from './lib/supabase';
 
 import ToastContainer from './components/ToastContainer';
 import LoginScreen from './pages/LoginScreen';
@@ -38,6 +39,18 @@ export default function App() {
   }, [lang]);
 
   useEffect(() => {
+    if (!isDemoMode) return;
+    document.body.classList.add('has-demo-banner');
+    return () => document.body.classList.remove('has-demo-banner');
+  }, []);
+
+  const demoBanner = isDemoMode ? (
+    <div role="status" className="demo-mode-banner">
+      Demo Mode (No backend connected)
+    </div>
+  ) : null;
+
+  useEffect(() => {
     if (!currentWorker) return;
     const session = data.activeSessions[currentWorker.id] ?? {};
     if (session.status === 'working' && session.date !== todayKey()) {
@@ -63,6 +76,7 @@ export default function App() {
   if (!currentWorker) {
     return (
       <>
+        {demoBanner}
         <LoginScreen
           workers={data.workers}
           settings={data.settings}
@@ -82,7 +96,7 @@ export default function App() {
     switch (activePage) {
       case 'dashboard':    return <DashboardPage {...sharedProps} />;
       case 'timeTracking':
-        return <TimeTrackingPage data={data} currentWorker={currentWorker} t={t} lang={lang} toast={toast} />;
+        return <TimeTrackingPage {...sharedProps} />;
       case 'history':      return <RecordsPage {...sharedProps} />;
       case 'reports':      return <ReportsPage {...sharedProps} />;
       case 'workers':      return currentWorker.isAdmin ? <WorkersPage {...sharedProps} /> : <DashboardPage {...sharedProps} />;
@@ -95,7 +109,9 @@ export default function App() {
   const workerDisplayRole = () => (lang === 'ar' ? currentWorker.role : (currentWorker.roleFr || currentWorker.role));
 
   return (
-    <div className="app-container">
+    <>
+      {demoBanner}
+      <div className="app-container">
       <div className="mobile-header">
         <div className="flex items-center gap-2">
           <span style={{ fontSize: 20 }}>✂️</span>
@@ -173,5 +189,6 @@ export default function App() {
 
       <ToastContainer toasts={toasts} />
     </div>
+    </>
   );
 }

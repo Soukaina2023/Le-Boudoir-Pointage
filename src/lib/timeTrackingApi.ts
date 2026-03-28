@@ -1,6 +1,20 @@
-import type { ActiveSession, SpecialMode, TimeRecord } from '../types';
+import type { ActiveSession, AppData, SpecialMode, TimeRecord } from '../types';
 import { calcWorkMinutes, todayKey } from '../utils/time';
-import { supabase } from './supabase';
+import { initData, loadData, saveData } from '../utils/storage';
+import { isDemoMode, supabase } from './supabase';
+
+function assertSupabase() {
+  if (!supabase) throw new Error('Supabase client not available');
+  return supabase;
+}
+
+function cloneApp(): AppData {
+  return JSON.parse(JSON.stringify(loadData() ?? initData())) as AppData;
+}
+
+function persistApp(d: AppData) {
+  saveData(d);
+}
 
 /** DB may use half_day; app uses halfDay */
 function toDbSpecialMode(m: SpecialMode): string {
@@ -51,31 +65,171 @@ function rowToTimeRecord(row: Record<string, unknown>): TimeRecord {
   };
 }
 
+// --- Demo: localStorage (same shape as AppData) ---
+
+function demoFetchActiveSession(workerId: string): Partial<ActiveSession> {
+  const d = loadData() ?? initData();
+  const s = d.activeSessions[workerId];
+  if (!s?.status) return { status: 'idle' };
+  return { ...s };
+}
+
+function demoFetchTodayTimeRecord(workerId: string): TimeRecord | null {
+  const d = loadData() ?? initData();
+  const day = todayKey();
+  const list = d.records.filter((r) => r.workerId === workerId && r.date === day);
+  if (!list.length) return null;
+  return [...list].sort((a, b) => b.endTs - a.endTs)[0];
+}
+
+function demoStartWork(workerId: string, specialMode: SpecialMode): void {
+  const d = cloneApp();
+  d.activeSessions[workerId] = {
+    status: 'working',
+    startTs: Date.now(),
+    totalBreakMins: 0,
+    date: todayKey(),
+    specialMode,
+    breakStartTs: null,
+  };
+  persistApp(d);
+}
+
+function demoBreakStart(workerId: string): void {
+  const d = cloneApp();
+  const cur = d.activeSessions[workerId] ?? {};
+  d.activeSessions[workerId] = { ...cur, status: 'break', breakStartTs: Date.now() };
+  persistApp(d);
+}
+
+function demoBreakEnd(workerId: string, breakStartTs: number, prevTotalBreakMins: number): void {
+  const d = cloneApp();
+  const cur = d.activeSessions[workerId] ?? {};
+  const breakMins = Math.round((Date.now() - breakStartTs) / 60000);
+  const totalBreak = prevTotalBreakMins + breakMins;
+  d.activeSessions[workerId] = {
+    ...cur,
+    status: 'working',
+    totalBreakMins: totalBreak,
+    breakStartTs: null,
+  };
+  persistApp(d);
+}
+
+function demoEndWorkSession(params: {
+  workerId: string;
+  workerName: string;
+  session: Partial<ActiveSession>;
+  officialHoursPerDay: number;
+}): void {
+  const endTs = Date.now();
+  const startTs = params.session.startTs!;
+  const totalBreak = params.session.totalBreakMins ?? 0;
+  const workMins = calcWorkMinutes(startTs, endTs, totalBreak);
+  const officialMins = params.officialHoursPerDay * 60;
+  const overtimeMins = Math.max(0, workMins - officialMins);
+
+  const record: TimeRecord = {
+    id: `r${Date.now()}`,
+    workerId: params.workerId,
+    workerName: params.workerName,
+    date: params.session.date ?? todayKey(),
+    dateTs: startTs,
+    startTs,
+    endTs,
+    breakMins: totalBreak,
+    workMins,
+    overtimeMins,
+    notes: '',
+    specialMode: params.session.specialMode ?? 'normal',
+    workerSig: false,
+    managerSig: false,
+    auditEdits: [],
+  };
+
+  const d = cloneApp();
+  d.records = [record, ...d.records];
+  d.activeSessions[params.workerId] = { status: 'done', lastRecord: record };
+  persistApp(d);
+}
+
+function demoInsertManualTimeRecord(params: {
+  workerId: string;
+  workerName: string;
+  startTs: number;
+  endTs: number;
+  breakMins: number;
+  notes: string;
+  specialMode: SpecialMode;
+  workerSig: boolean;
+  managerSig: boolean;
+  officialHoursPerDay: number;
+}): void {
+  const workMins = calcWorkMinutes(params.startTs, params.endTs, params.breakMins);
+  const officialMins = params.officialHoursPerDay * 60;
+  const overtimeMins = Math.max(0, workMins - officialMins);
+
+  const record: TimeRecord = {
+    id: `r${Date.now()}`,
+    workerId: params.workerId,
+    workerName: params.workerName,
+    date: todayKey(),
+    dateTs: params.startTs,
+    startTs: params.startTs,
+    endTs: params.endTs,
+    breakMins: params.breakMins,
+    workMins,
+    overtimeMins,
+    notes: params.notes,
+    specialMode: params.specialMode,
+    workerSig: params.workerSig,
+    managerSig: params.managerSig,
+    auditEdits: [],
+  };
+
+  const d = cloneApp();
+  d.records = [record, ...d.records];
+  persistApp(d);
+}
+
+// --- Public API ---
+
 export async function resolveOrganizationId(workerId: string): Promise<string | undefined> {
+  if (isDemoMode) return import.meta.env.VITE_ORGANIZATION_ID;
   const envOrg = import.meta.env.VITE_ORGANIZATION_ID;
-  const { data, error } = await supabase.from('workers').select('organization_id').eq('id', workerId).maybeSingle();
+  const sb = assertSupabase();
+  const { data, error } = await sb.from('workers').select('organization_id').eq('id', workerId).maybeSingle();
   if (error) return envOrg;
-  const oid = data && typeof data === 'object' && 'organization_id' in data ? (data as { organization_id?: string }).organization_id : undefined;
+  const oid =
+    data && typeof data === 'object' && 'organization_id' in data
+      ? (data as { organization_id?: string }).organization_id
+      : undefined;
   return oid ?? envOrg;
 }
 
 export async function fetchOfficialHoursPerDay(): Promise<number | null> {
-  const { data, error } = await supabase.from('app_settings').select('official_hours_per_day').limit(1).maybeSingle();
+  if (isDemoMode) return null;
+  const sb = assertSupabase();
+  const { data, error } = await sb.from('app_settings').select('official_hours_per_day').limit(1).maybeSingle();
   if (error || !data) return null;
   const v = (data as { official_hours_per_day?: number }).official_hours_per_day;
   return typeof v === 'number' ? v : null;
 }
 
 export async function fetchActiveSession(workerId: string): Promise<Partial<ActiveSession>> {
-  const { data, error } = await supabase.from('active_sessions').select('*').eq('worker_id', workerId).maybeSingle();
+  if (isDemoMode) return demoFetchActiveSession(workerId);
+  const sb = assertSupabase();
+  const { data, error } = await sb.from('active_sessions').select('*').eq('worker_id', workerId).maybeSingle();
   if (error) throw error;
   if (!data) return { status: 'idle' };
   return rowToSession(data as Record<string, unknown>);
 }
 
 export async function fetchTodayTimeRecord(workerId: string): Promise<TimeRecord | null> {
+  if (isDemoMode) return demoFetchTodayTimeRecord(workerId);
+  const sb = assertSupabase();
   const day = todayKey();
-  const { data, error } = await supabase
+  const { data, error } = await sb
     .from('time_records')
     .select('*')
     .eq('worker_id', workerId)
@@ -93,6 +247,12 @@ export async function startWork(
   organizationId: string | undefined,
   specialMode: SpecialMode = 'normal',
 ): Promise<void> {
+  if (isDemoMode) {
+    void organizationId;
+    demoStartWork(workerId, specialMode);
+    return;
+  }
+  const sb = assertSupabase();
   const payload: Record<string, unknown> = {
     worker_id: workerId,
     status: 'working',
@@ -104,12 +264,17 @@ export async function startWork(
   };
   if (organizationId) payload.organization_id = organizationId;
 
-  const { error } = await supabase.from('active_sessions').upsert(payload, { onConflict: 'worker_id' });
+  const { error } = await sb.from('active_sessions').upsert(payload, { onConflict: 'worker_id' });
   if (error) throw error;
 }
 
 export async function breakStart(workerId: string): Promise<void> {
-  const { error } = await supabase
+  if (isDemoMode) {
+    demoBreakStart(workerId);
+    return;
+  }
+  const sb = assertSupabase();
+  const { error } = await sb
     .from('active_sessions')
     .update({
       status: 'break',
@@ -120,9 +285,14 @@ export async function breakStart(workerId: string): Promise<void> {
 }
 
 export async function breakEnd(workerId: string, breakStartTs: number, prevTotalBreakMins: number): Promise<void> {
+  if (isDemoMode) {
+    demoBreakEnd(workerId, breakStartTs, prevTotalBreakMins);
+    return;
+  }
+  const sb = assertSupabase();
   const breakMins = Math.round((Date.now() - breakStartTs) / 60000);
   const totalBreak = prevTotalBreakMins + breakMins;
-  const { error } = await supabase
+  const { error } = await sb
     .from('active_sessions')
     .update({
       status: 'working',
@@ -140,6 +310,12 @@ export async function endWorkSession(params: {
   session: Partial<ActiveSession>;
   officialHoursPerDay: number;
 }): Promise<void> {
+  if (isDemoMode) {
+    void params.organizationId;
+    demoEndWorkSession(params);
+    return;
+  }
+  const sb = assertSupabase();
   const endTs = Date.now();
   const startTs = params.session.startTs!;
   const totalBreak = params.session.totalBreakMins ?? 0;
@@ -164,7 +340,7 @@ export async function endWorkSession(params: {
   };
   if (params.organizationId) insertRow.organization_id = params.organizationId;
 
-  const { error: insertError } = await supabase.from('time_records').insert(insertRow);
+  const { error: insertError } = await sb.from('time_records').insert(insertRow);
   if (insertError) throw insertError;
 
   const donePayload: Record<string, unknown> = {
@@ -178,7 +354,7 @@ export async function endWorkSession(params: {
   };
   if (params.organizationId) donePayload.organization_id = params.organizationId;
 
-  const { error: upsertError } = await supabase.from('active_sessions').upsert(donePayload, { onConflict: 'worker_id' });
+  const { error: upsertError } = await sb.from('active_sessions').upsert(donePayload, { onConflict: 'worker_id' });
   if (upsertError) throw upsertError;
 }
 
@@ -195,6 +371,12 @@ export async function insertManualTimeRecord(params: {
   managerSig: boolean;
   officialHoursPerDay: number;
 }): Promise<void> {
+  if (isDemoMode) {
+    void params.organizationId;
+    demoInsertManualTimeRecord(params);
+    return;
+  }
+  const sb = assertSupabase();
   const workMins = calcWorkMinutes(params.startTs, params.endTs, params.breakMins);
   const officialMins = params.officialHoursPerDay * 60;
   const overtimeMins = Math.max(0, workMins - officialMins);
@@ -216,6 +398,6 @@ export async function insertManualTimeRecord(params: {
   };
   if (params.organizationId) insertRow.organization_id = params.organizationId;
 
-  const { error } = await supabase.from('time_records').insert(insertRow);
+  const { error } = await sb.from('time_records').insert(insertRow);
   if (error) throw error;
 }

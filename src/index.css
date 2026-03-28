@@ -83,6 +83,30 @@ body::before {
 /* Layout */
 .app-container { display: flex; min-height: 100vh; }
 
+.demo-mode-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 250;
+  background: linear-gradient(90deg, #a67c00, #d4a017);
+  color: #111;
+  text-align: center;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+body.has-demo-banner .sidebar {
+  top: 34px;
+  height: calc(100vh - 34px);
+}
+
+body.has-demo-banner .mobile-header {
+  top: 34px;
+}
+
 /* Sidebar */
 .sidebar {
   width: 260px;
