@@ -1,0 +1,3095 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Le Boudoir Majorelle | Suivi du temps de travail</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #C9A84C;
+    --gold-light: #E8C97A;
+    --gold-dark: #8B6914;
+    --dark: #0A0A0F;
+    --dark-2: #12121A;
+    --dark-3: #1A1A25;
+    --dark-4: #22222F;
+    --dark-5: #2C2C3E;
+    --text: #F0EDE8;
+    --text-muted: #8A8799;
+    --text-dim: #5A5870;
+    --success: #2ECC71;
+    --warning: #F39C12;
+    --danger: #E74C3C;
+    --info: #3498DB;
+    --border: rgba(201,168,76,0.15);
+    --radius: 12px;
+    --radius-lg: 20px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    --shadow-gold: 0 4px 24px rgba(201,168,76,0.15);
+    --transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+  }
+  .lang-fr { --font: 'Tajawal', sans-serif; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Cairo', 'Tajawal', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: 
+      radial-gradient(ellipse at 20% 20%, rgba(201,168,76,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(201,168,76,0.03) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #root { position: relative; z-index: 1; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--dark-2); }
+  ::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 3px; }
+
+  /* Animations */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  @keyframes recordPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(231,76,60,0.4); } 70% { box-shadow: 0 0 0 8px rgba(231,76,60,0); } }
+
+  .animate-in { animation: fadeIn 0.35s ease forwards; }
+  .pulse { animation: pulse 2s infinite; }
+  .spin { animation: spin 1s linear infinite; }
+  .record-pulse { animation: recordPulse 2s infinite; }
+
+  /* Layout */
+  .app-container { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 260px;
+    background: var(--dark-2);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; bottom: 0;
+    right: 0;
+    z-index: 100;
+    transition: var(--transition);
+  }
+
+  .sidebar-logo {
+    padding: 28px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-mark {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow-gold);
+  }
+
+  .logo-text { font-size: 18px; font-weight: 800; color: var(--gold); letter-spacing: -0.5px; }
+  .logo-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+
+  .nav-section { margin-bottom: 20px; }
+  .nav-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 0 8px;
+    margin-bottom: 6px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+    border: 1px solid transparent;
+  }
+
+  .nav-item:hover { background: var(--dark-4); color: var(--text); }
+  .nav-item.active {
+    background: rgba(201,168,76,0.1);
+    color: var(--gold);
+    border-color: var(--border);
+  }
+
+  .nav-icon { font-size: 18px; width: 24px; text-align: center; }
+
+  .sidebar-footer {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .worker-chip {
+    background: var(--dark-3);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--border);
+  }
+
+  .worker-avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .worker-name { font-size: 13px; font-weight: 600; }
+  .worker-role { font-size: 11px; color: var(--text-muted); }
+
+  /* Main Content */
+  .main-content {
+    flex: 1;
+    margin-right: 260px;
+    padding: 32px;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .page-title { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+  .page-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+  /* Cards */
+  .card {
+    background: var(--dark-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    transition: var(--transition);
+  }
+
+  .card:hover { border-color: rgba(201,168,76,0.25); }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+  }
+
+  /* Stats Grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--dark-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: var(--transition);
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: var(--accent-color, var(--gold));
+    opacity: 0.06;
+    transform: translate(20px, -20px);
+  }
+
+  .stat-card:hover { transform: translateY(-2px); border-color: rgba(201,168,76,0.3); }
+
+  .stat-icon {
+    font-size: 22px;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .stat-value {
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 6px;
+    letter-spacing: -1px;
+  }
+
+  .stat-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+  .stat-sub { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    transition: var(--transition);
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    color: var(--dark);
+  }
+  .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--shadow-gold); }
+
+  .btn-success { background: var(--success); color: white; }
+  .btn-success:hover:not(:disabled) { background: #27ae60; transform: translateY(-1px); }
+
+  .btn-danger { background: var(--danger); color: white; }
+  .btn-danger:hover:not(:disabled) { background: #c0392b; transform: translateY(-1px); }
+
+  .btn-warning { background: var(--warning); color: white; }
+  .btn-warning:hover:not(:disabled) { background: #e67e22; }
+
+  .btn-ghost {
+    background: var(--dark-4);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover:not(:disabled) { background: var(--dark-5); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--gold);
+    border: 1px solid var(--gold);
+  }
+  .btn-outline:hover:not(:disabled) { background: rgba(201,168,76,0.1); }
+
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-lg { padding: 14px 28px; font-size: 16px; }
+  .btn-icon { padding: 10px; border-radius: var(--radius); }
+
+  /* Action buttons for time tracking */
+  .time-btn {
+    flex: 1;
+    padding: 16px;
+    border-radius: var(--radius-lg);
+    border: 2px solid transparent;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 15px;
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .time-btn-icon { font-size: 28px; }
+
+  .time-btn-start {
+    background: rgba(46,204,113,0.1);
+    border-color: rgba(46,204,113,0.3);
+    color: var(--success);
+  }
+  .time-btn-start:hover:not(:disabled) {
+    background: rgba(46,204,113,0.2);
+    border-color: var(--success);
+    transform: translateY(-2px);
+  }
+  .time-btn-start:disabled { opacity: 0.4; }
+
+  .time-btn-end {
+    background: rgba(231,76,60,0.1);
+    border-color: rgba(231,76,60,0.3);
+    color: var(--danger);
+  }
+  .time-btn-end:hover:not(:disabled) {
+    background: rgba(231,76,60,0.2);
+    border-color: var(--danger);
+    transform: translateY(-2px);
+  }
+  .time-btn-end:disabled { opacity: 0.4; }
+
+  .time-btn-break {
+    background: rgba(243,156,18,0.1);
+    border-color: rgba(243,156,18,0.3);
+    color: var(--warning);
+  }
+  .time-btn-break:hover:not(:disabled) {
+    background: rgba(243,156,18,0.2);
+    border-color: var(--warning);
+    transform: translateY(-2px);
+  }
+
+  .time-btn-break-end {
+    background: rgba(52,152,219,0.1);
+    border-color: rgba(52,152,219,0.3);
+    color: var(--info);
+  }
+  .time-btn-break-end:hover:not(:disabled) {
+    background: rgba(52,152,219,0.2);
+    border-color: var(--info);
+  }
+
+  /* Timer display */
+  .timer-display {
+    text-align: center;
+    padding: 32px 20px;
+  }
+
+  .timer-clock {
+    font-size: 56px;
+    font-weight: 900;
+    letter-spacing: -2px;
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    text-shadow: 0 0 40px rgba(201,168,76,0.3);
+  }
+
+  .timer-date { font-size: 14px; color: var(--text-muted); margin-top: 8px; }
+  .timer-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 12px;
+  }
+
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .status-working { background: rgba(46,204,113,0.15); color: var(--success); }
+  .status-working .status-dot { background: var(--success); animation: pulse 2s infinite; }
+  .status-break { background: rgba(243,156,18,0.15); color: var(--warning); }
+  .status-break .status-dot { background: var(--warning); animation: pulse 2s infinite; }
+  .status-idle { background: var(--dark-4); color: var(--text-muted); }
+  .status-idle .status-dot { background: var(--text-dim); }
+  .status-done { background: rgba(52,152,219,0.15); color: var(--info); }
+  .status-done .status-dot { background: var(--info); }
+
+  /* Forms */
+  .form-group { margin-bottom: 16px; }
+
+  .form-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  .form-control {
+    width: 100%;
+    background: var(--dark-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    transition: var(--transition);
+    outline: none;
+  }
+
+  .form-control:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.1);
+  }
+
+  .form-control::placeholder { color: var(--text-dim); }
+
+  select.form-control { cursor: pointer; }
+  select.form-control option { background: var(--dark-3); }
+
+  textarea.form-control { resize: vertical; min-height: 80px; }
+
+  /* Table */
+  .table-wrapper {
+    overflow-x: auto;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead th {
+    background: var(--dark-3);
+    padding: 12px 16px;
+    text-align: right;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: var(--transition);
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--dark-3); }
+
+  tbody td {
+    padding: 13px 16px;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  /* Badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .badge-success { background: rgba(46,204,113,0.15); color: var(--success); }
+  .badge-warning { background: rgba(243,156,18,0.15); color: var(--warning); }
+  .badge-danger { background: rgba(231,76,60,0.15); color: var(--danger); }
+  .badge-info { background: rgba(52,152,219,0.15); color: var(--info); }
+  .badge-gold { background: rgba(201,168,76,0.15); color: var(--gold); }
+  .badge-muted { background: var(--dark-4); color: var(--text-muted); }
+
+  /* Progress bar */
+  .progress-bar {
+    background: var(--dark-4);
+    border-radius: 20px;
+    height: 6px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 20px;
+    background: linear-gradient(90deg, var(--gold-dark), var(--gold));
+    transition: width 0.5s ease;
+  }
+
+  .progress-fill.overtime { background: linear-gradient(90deg, var(--danger), #FF6B6B); }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .modal {
+    background: var(--dark-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    animation: fadeIn 0.25s ease;
+  }
+
+  .modal-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .modal-title { font-size: 17px; font-weight: 700; }
+  .modal-body { padding: 24px; }
+  .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  /* Close btn */
+  .close-btn {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: var(--dark-4);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 18px;
+    transition: var(--transition);
+  }
+  .close-btn:hover { background: var(--dark-5); color: var(--text); }
+
+  /* Login screen */
+  .login-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+  }
+
+  .login-card {
+    background: var(--dark-2);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 40px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+    animation: fadeIn 0.4s ease;
+  }
+
+  .login-logo {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .login-logo-mark {
+    width: 64px; height: 64px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    margin: 0 auto 16px;
+    box-shadow: 0 8px 32px rgba(201,168,76,0.3);
+  }
+
+  /* Worker selector */
+  .worker-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .worker-option {
+    background: var(--dark-3);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: center;
+  }
+
+  .worker-option:hover { border-color: rgba(201,168,76,0.4); }
+  .worker-option.selected { border-color: var(--gold); background: rgba(201,168,76,0.08); }
+
+  .worker-option-avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+    margin: 0 auto 8px;
+  }
+
+  .worker-option-name { font-size: 13px; font-weight: 600; }
+  .worker-option-role { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Divider */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 20px 0;
+  }
+
+  /* Grid layouts */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; }
+
+  /* Flex utilities */
+  .flex { display: flex; }
+  .flex-center { display: flex; align-items: center; justify-content: center; }
+  .flex-between { display: flex; align-items: center; justify-content: space-between; }
+  .items-center { align-items: center; }
+  .gap-2 { gap: 8px; }
+  .gap-3 { gap: 12px; }
+  .gap-4 { gap: 16px; }
+  .flex-wrap { flex-wrap: wrap; }
+
+  /* Spacing */
+  .mb-4 { margin-bottom: 16px; }
+  .mb-6 { margin-bottom: 24px; }
+  .mt-4 { margin-top: 16px; }
+  .p-4 { padding: 16px; }
+
+  /* Text utils */
+  .text-gold { color: var(--gold); }
+  .text-success { color: var(--success); }
+  .text-danger { color: var(--danger); }
+  .text-warning { color: var(--warning); }
+  .text-muted { color: var(--text-muted); }
+  .text-sm { font-size: 12px; }
+  .text-lg { font-size: 18px; }
+  .font-bold { font-weight: 700; }
+  .font-black { font-weight: 900; }
+  .text-center { text-align: center; }
+
+  /* Alert */
+  .alert {
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 16px;
+    border: 1px solid;
+  }
+
+  .alert-warning { background: rgba(243,156,18,0.1); border-color: rgba(243,156,18,0.3); color: #F39C12; }
+  .alert-success { background: rgba(46,204,113,0.1); border-color: rgba(46,204,113,0.3); color: var(--success); }
+  .alert-danger { background: rgba(231,76,60,0.1); border-color: rgba(231,76,60,0.3); color: var(--danger); }
+  .alert-info { background: rgba(52,152,219,0.1); border-color: rgba(52,152,219,0.3); color: var(--info); }
+
+  /* Toast notifications */
+  .toast-container {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .toast {
+    background: var(--dark-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--shadow);
+    animation: fadeIn 0.3s ease;
+    min-width: 280px;
+    max-width: 360px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .toast-success { border-left: 3px solid var(--success); }
+  .toast-error { border-left: 3px solid var(--danger); }
+  .toast-warning { border-left: 3px solid var(--warning); }
+  .toast-info { border-left: 3px solid var(--info); }
+
+  /* Signature pad */
+  .signature-pad {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 13px;
+    color: var(--text-muted);
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .signature-pad:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* Toggle switch */
+  .toggle {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    cursor: pointer;
+  }
+
+  .toggle input { display: none; }
+
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--dark-5);
+    border-radius: 24px;
+    transition: var(--transition);
+    border: 1px solid var(--border);
+  }
+
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    top: 2px;
+    right: 2px;
+    transition: var(--transition);
+  }
+
+  .toggle input:checked + .toggle-slider { background: rgba(201,168,76,0.2); border-color: var(--gold); }
+  .toggle input:checked + .toggle-slider::before { background: var(--gold); transform: translateX(-20px); }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+
+  .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+  .empty-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .empty-desc { font-size: 13px; color: var(--text-dim); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .sidebar {
+      transform: translateX(100%);
+      width: 100%;
+    }
+    .sidebar.open { transform: translateX(0); }
+    .main-content { margin-right: 0; padding: 16px; }
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .timer-clock { font-size: 36px; }
+    .worker-selector { grid-template-columns: 1fr 1fr; }
+    .time-btn { font-size: 13px; padding: 12px; }
+    .time-btn-icon { font-size: 22px; }
+    .mobile-header {
+      display: flex !important;
+    }
+  }
+
+  .mobile-header {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--dark-2);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  /* Lang direction support */
+  [dir="ltr"] .sidebar { right: auto; left: 0; }
+  [dir="ltr"] .main-content { margin-right: 0; margin-left: 260px; }
+  [dir="ltr"] thead th { text-align: left; }
+  [dir="ltr"] tbody td { text-align: left; }
+
+  /* Report worker card */
+  .worker-report-card {
+    background: var(--dark-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: var(--transition);
+  }
+
+  .worker-report-card:hover { border-color: rgba(201,168,76,0.25); }
+
+  .worker-report-header {
+    background: var(--dark-3);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .worker-report-body { padding: 20px; }
+
+  .metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 13px;
+  }
+
+  .metric-row:last-child { border-bottom: none; }
+  .metric-label { color: var(--text-muted); }
+  .metric-value { font-weight: 700; }
+
+  /* Day picker */
+  .special-mode-selector {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .mode-chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--dark-3);
+    color: var(--text-muted);
+    transition: var(--transition);
+  }
+
+  .mode-chip.active { background: rgba(201,168,76,0.15); color: var(--gold); border-color: rgba(201,168,76,0.4); }
+
+  /* Audit log */
+  .audit-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 12px;
+  }
+
+  .audit-time { color: var(--text-dim); white-space: nowrap; flex-shrink: 0; }
+  .audit-action { color: var(--text-muted); }
+  .audit-actor { color: var(--gold); font-weight: 600; }
+
+  /* Settings */
+  .settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .settings-row:last-child { border-bottom: none; }
+  .settings-label { font-size: 14px; font-weight: 600; }
+  .settings-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Scrollable table container with max height */
+  .table-scroll { max-height: 420px; overflow-y: auto; }
+
+  /* Number input */
+  input[type="number"].form-control { -moz-appearance: textfield; }
+  input[type="number"].form-control::-webkit-outer-spin-button,
+  input[type="number"].form-control::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  /* Workers grid */
+  .workers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+
+  .worker-card {
+    background: var(--dark-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: var(--transition);
+    position: relative;
+  }
+
+  .worker-card:hover { border-color: rgba(201,168,76,0.25); transform: translateY(-2px); }
+
+  .worker-card-avatar {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 20px;
+    box-shadow: 0 4px 16px rgba(201,168,76,0.2);
+  }
+
+  .worker-card-name { font-size: 16px; font-weight: 700; }
+  .worker-card-role { font-size: 12px; color: var(--text-muted); }
+
+  .worker-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .color-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+// ============================================================
+// TRANSLATIONS
+// ============================================================
+const translations = {
+  ar: {
+    appName: "Le Boudoir Majorelle",
+    appSub: "إدارة أوقات العمل",
+    login: "تسجيل الدخول",
+    selectWorker: "اختر حسابك",
+    enterPin: "أدخل رمز المرور",
+    loginBtn: "دخول",
+    dashboard: "لوحة التحكم",
+    timeTracking: "تسجيل الوقت",
+    reports: "التقارير",
+    workers: "العمال",
+    settings: "الإعدادات",
+    history: "السجل",
+    logout: "خروج",
+    startWork: "بدء العمل",
+    endWork: "إنهاء العمل",
+    startBreak: "بدء الاستراحة",
+    endBreak: "إنهاء الاستراحة",
+    manualEntry: "إدخال يدوي",
+    workStart: "وقت الدخول",
+    workEnd: "وقت الخروج",
+    breakDuration: "مدة الاستراحة (دقيقة)",
+    notes: "ملاحظات",
+    save: "حفظ",
+    cancel: "إلغاء",
+    edit: "تعديل",
+    delete: "حذف",
+    date: "التاريخ",
+    worker: "العامل",
+    checkIn: "دخول",
+    checkOut: "خروج",
+    break: "استراحة",
+    workHours: "ساعات العمل",
+    overtime: "ساعات إضافية",
+    overtimeBefore8: "إضافي قبل 20:00",
+    overtimeAfter8: "إضافي بعد 20:00",
+    checkoutAfter8PM: "خروج بعد 20:00",
+    totalHours: "مجموع الساعات",
+    totalOvertime: "مجموع الإضافي",
+    month: "الشهر",
+    year: "السنة",
+    export: "تصدير",
+    exportPDF: "تصدير PDF",
+    exportExcel: "تصدير Excel",
+    todayStats: "إحصائيات اليوم",
+    monthStats: "إحصائيات الشهر",
+    currentStatus: "الحالة الحالية",
+    working: "في العمل 🟢",
+    onBreak: "في استراحة 🟡",
+    idle: "خارج الدوام ⚪",
+    done: "انتهى الدوام ✅",
+    todayHours: "ساعات اليوم",
+    overtimeToday: "إضافي اليوم",
+    workersCount: "عدد العمال",
+    activeWorkers: "نشط الآن",
+    addWorker: "إضافة عامل",
+    editWorker: "تعديل بيانات العامل",
+    workerName: "اسم العامل",
+    workerRole: "المنصب",
+    workerPin: "رمز المرور",
+    adminPin: "رمز المشرف",
+    officialHours: "ساعات العمل الرسمية",
+    hoursPerDay: "ساعة/يوم",
+    filterMonth: "تصفية حسب الشهر",
+    allWorkers: "جميع العمال",
+    noRecords: "لا توجد سجلات",
+    noRecordsDesc: "لم يتم تسجيل أي وقت عمل بعد",
+    addFirst: "أضف أول سجل",
+    workerSignature: "توقيع العامل",
+    managerSignature: "توقيع المشرف",
+    signHere: "انقر للتوقيع",
+    auditLog: "سجل التعديلات",
+    modifiedBy: "عُدّل بواسطة",
+    originalValue: "القيمة الأصلية",
+    newValue: "القيمة الجديدة",
+    totalWorkingDays: "أيام العمل",
+    avgDailyHours: "متوسط الساعات/يوم",
+    deleteConfirm: "هل أنت متأكد من حذف هذا السجل؟",
+    editRecord: "تعديل السجل",
+    specialMode: "نظام العمل",
+    normal: "عادي",
+    ramadan: "رمضاني",
+    halfDay: "نصف يوم",
+    hr: "س",
+    min: "د",
+    mins: "دقيقة",
+    of: "من",
+    signedWorker: "✅ وقّع العامل",
+    signedManager: "✅ وقّع المشرف",
+    notSigned: "لم يوقع بعد",
+    performance: "الأداء",
+    errorFillFields: "يرجى تعبئة جميع الحقول المطلوبة",
+    errorEndBeforeStart: "وقت الخروج يجب أن يكون بعد وقت الدخول",
+    savedSuccess: "تم الحفظ بنجاح ✓",
+    deletedSuccess: "تم الحذف ✓",
+    updatedSuccess: "تم التحديث ✓",
+    workerAdded: "تم إضافة العامل ✓",
+    workerDeleted: "تم حذف العامل ✓",
+    loginError: "رمز المرور غير صحيح",
+    alreadyStarted: "العمل بدأ مسبقاً",
+    alreadyEnded: "تم إنهاء الدوام بالفعل",
+    alreadyOnBreak: "أنت في استراحة بالفعل",
+    notOnBreak: "لم تبدأ الاستراحة بعد",
+    notStarted: "لم تبدأ العمل بعد",
+    forgotCheckout: "⚠️ لم تسجّل خروجك أمس!",
+    mins_break: "دقيقة استراحة",
+    totalRecords: "إجمالي السجلات",
+    language: "اللغة",
+    arabic: "العربية",
+    french: "الفرنسية",
+    workerColor: "اللون",
+    adminAccess: "وصول المشرف",
+    adminLoginTitle: "دخول المشرف",
+    viewAll: "عرض الكل",
+    thisMonth: "هذا الشهر",
+    h: "س",
+    m: "د",
+    managerPointageHint: "اختر العامل ثم استخدم الأزرار لتسجيل الدخول والخروج والاستراحة",
+  },
+  fr: {
+    appName: "Le Boudoir Majorelle",
+    appSub: "Gestion du temps de travail",
+    login: "Connexion",
+    selectWorker: "Sélectionnez votre compte",
+    enterPin: "Entrez votre code PIN",
+    loginBtn: "Entrer",
+    dashboard: "Tableau de bord",
+    timeTracking: "Pointage",
+    reports: "Rapports",
+    workers: "Employés",
+    settings: "Paramètres",
+    history: "Historique",
+    logout: "Déconnexion",
+    startWork: "Début du travail",
+    endWork: "Fin du travail",
+    startBreak: "Début pause",
+    endBreak: "Fin pause",
+    manualEntry: "Saisie manuelle",
+    workStart: "Heure d'arrivée",
+    workEnd: "Heure de départ",
+    breakDuration: "Durée pause (min)",
+    notes: "Notes",
+    save: "Enregistrer",
+    cancel: "Annuler",
+    edit: "Modifier",
+    delete: "Supprimer",
+    date: "Date",
+    worker: "Employé",
+    checkIn: "Arrivée",
+    checkOut: "Départ",
+    break: "Pause",
+    workHours: "Heures travaillées",
+    overtime: "Heures sup.",
+    overtimeBefore8: "Sup. avant 20h",
+    overtimeAfter8: "Sup. après 20h",
+    checkoutAfter8PM: "Sortie après 20h",
+    totalHours: "Total heures",
+    totalOvertime: "Total heures sup.",
+    month: "Mois",
+    year: "Année",
+    export: "Exporter",
+    exportPDF: "Exporter PDF",
+    exportExcel: "Exporter Excel",
+    todayStats: "Stats du jour",
+    monthStats: "Stats du mois",
+    currentStatus: "Statut actuel",
+    working: "En service 🟢",
+    onBreak: "En pause 🟡",
+    idle: "Hors service ⚪",
+    done: "Terminé ✅",
+    todayHours: "Heures aujourd'hui",
+    overtimeToday: "Sup. aujourd'hui",
+    workersCount: "Nb employés",
+    activeWorkers: "Actifs maintenant",
+    addWorker: "Ajouter employé",
+    editWorker: "Modifier l'employé",
+    workerName: "Nom de l'employé",
+    workerRole: "Poste",
+    workerPin: "Code PIN",
+    adminPin: "Code administrateur",
+    officialHours: "Heures officielles",
+    hoursPerDay: "h/jour",
+    filterMonth: "Filtrer par mois",
+    allWorkers: "Tous les employés",
+    noRecords: "Aucun enregistrement",
+    noRecordsDesc: "Aucun temps de travail enregistré",
+    addFirst: "Ajouter le premier",
+    workerSignature: "Signature employé",
+    managerSignature: "Signature responsable",
+    signHere: "Cliquez pour signer",
+    auditLog: "Journal des modifications",
+    modifiedBy: "Modifié par",
+    originalValue: "Valeur originale",
+    newValue: "Nouvelle valeur",
+    totalWorkingDays: "Jours travaillés",
+    avgDailyHours: "Moy. heures/jour",
+    deleteConfirm: "Confirmer la suppression?",
+    editRecord: "Modifier l'enregistrement",
+    specialMode: "Mode de travail",
+    normal: "Normal",
+    ramadan: "Ramadan",
+    halfDay: "Demi-journée",
+    hr: "h",
+    min: "m",
+    mins: "minutes",
+    of: "de",
+    signedWorker: "✅ Employé signé",
+    signedManager: "✅ Responsable signé",
+    notSigned: "Non signé",
+    performance: "Performance",
+    errorFillFields: "Veuillez remplir tous les champs",
+    errorEndBeforeStart: "L'heure de départ doit être après l'arrivée",
+    savedSuccess: "Enregistré avec succès ✓",
+    deletedSuccess: "Supprimé ✓",
+    updatedSuccess: "Mis à jour ✓",
+    workerAdded: "Employé ajouté ✓",
+    workerDeleted: "Employé supprimé ✓",
+    loginError: "Code PIN incorrect",
+    alreadyStarted: "Déjà en service",
+    alreadyEnded: "Service déjà terminé",
+    alreadyOnBreak: "Déjà en pause",
+    notOnBreak: "Pas en pause",
+    notStarted: "Pas encore en service",
+    forgotCheckout: "⚠️ Vous avez oublié de pointer hier!",
+    mins_break: "min de pause",
+    totalRecords: "Total enregistrements",
+    language: "Langue",
+    arabic: "Arabe",
+    french: "Français",
+    workerColor: "Couleur",
+    adminAccess: "Accès admin",
+    adminLoginTitle: "Connexion Admin",
+    viewAll: "Voir tout",
+    thisMonth: "Ce mois",
+    h: "h",
+    m: "m",
+    managerPointageHint: "Choisissez un employé, puis utilisez les boutons pour l'arrivée, le départ et les pauses.",
+  }
+};
+
+// ============================================================
+// UTILS
+// ============================================================
+const STORAGE_KEY = 'barbershop_timetracker_v2';
+
+const defaultWorkers = [
+  { id: 'w1', name: 'محمد', nameFr: 'Mohammed', role: 'حلاق', roleFr: 'Coiffeur', pin: '1234', color: '#C9A84C', isAdmin: false },
+  { id: 'w2', name: 'أحمد', nameFr: 'Ahmed', role: 'حلاق', roleFr: 'Coiffeur', pin: '5678', color: '#3498DB', isAdmin: false },
+  { id: 'w3', name: 'المشرف', nameFr: 'Responsable', role: 'مشرف', roleFr: 'Responsable', pin: '0000', color: '#E74C3C', isAdmin: true },
+];
+
+const defaultSettings = {
+  officialHoursPerDay: 8,
+  adminPin: '9999',
+  language: 'fr',
+};
+
+const loadData = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+};
+
+const saveData = (data) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch(e) { console.error(e); }
+};
+
+const initData = () => {
+  const saved = loadData();
+  if (saved) return saved;
+  return {
+    workers: defaultWorkers,
+    records: [],
+    auditLog: [],
+    settings: defaultSettings,
+    activeSessions: {},
+  };
+};
+
+const formatTime = (ts) => {
+  if (!ts) return '--:--';
+  const d = new Date(ts);
+  return d.toTimeString().slice(0,5);
+};
+
+const formatDate = (ts, lang='fr') => {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const opts = { year: 'numeric', month: '2-digit', day: '2-digit' };
+  return d.toLocaleDateString(lang === 'ar' ? 'ar-MA' : 'fr-FR', opts);
+};
+
+/** Show nameFr in French UI even when TimeRecord.workerName is stored in Arabic */
+const recordWorkerLabel = (data, workerId, lang) => {
+  const w = data.workers.find(x => x.id === workerId);
+  if (!w) return '';
+  return lang === 'ar' ? w.name : (w.nameFr || w.name);
+};
+
+const minutesToHHMM = (mins, t) => {
+  if (mins <= 0) return `0${t.hr} 0${t.min}`;
+  const totalMins = Math.round(Math.abs(mins));
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  return `${h}:${String(m).padStart(2,'0')}`;
+};
+
+const formatDurationHMS = (totalMinutes) => {
+  const totalSeconds = Math.max(0, Math.floor(Math.abs(totalMinutes) * 60 + 1e-9));
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+};
+
+const minutesToDisplay = (mins, t) => {
+  const totalMins = Math.round(Math.abs(mins));
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  return `${h}${t.hr} ${m}${t.min}`;
+};
+
+const calcWorkMinutes = (startTs, endTs, breakMins) => {
+  if (!startTs || !endTs) return 0;
+  const total = (endTs - startTs) / 60000;
+  return Math.max(0, Math.round(total - (breakMins || 0)));
+};
+
+const getEightPMTs = (ts) => {
+  const d = new Date(ts);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 20, 0, 0, 0).getTime();
+};
+const isCheckoutAfter8PM = (endTs) => endTs > getEightPMTs(endTs);
+const splitOvertimeBy8PM = (startTs, endTs, breakMins, overtimeMins, officialMins) => {
+  if (overtimeMins <= 0) return { before8PM: 0, after8PM: 0 };
+  const officialEndTs = startTs + (officialMins + (breakMins || 0)) * 60000;
+  const otStart = officialEndTs;
+  const otEnd = endTs;
+  if (otEnd <= otStart) return { before8PM: overtimeMins, after8PM: 0 };
+  const eightPMTs = getEightPMTs(startTs);
+  const beforeMs = Math.max(0, Math.min(eightPMTs, otEnd) - otStart);
+  const afterMs = Math.max(0, otEnd - Math.max(otStart, eightPMTs));
+  let before = Math.round(beforeMs / 60000);
+  let after = Math.round(afterMs / 60000);
+  const sum = before + after;
+  if (sum !== overtimeMins) {
+    const diff = overtimeMins - sum;
+    if (after >= before) after += diff; else before += diff;
+  }
+  return { before8PM: Math.max(0, before), after8PM: Math.max(0, after) };
+};
+
+const getMonthKey = (ts) => {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+};
+
+const getMonthLabel = (key, lang) => {
+  const [year, month] = key.split('-');
+  const d = new Date(parseInt(year), parseInt(month)-1, 1);
+  return d.toLocaleDateString(lang === 'ar' ? 'ar-MA' : 'fr-FR', { month: 'long', year: 'numeric' });
+};
+
+const nowTs = () => Date.now();
+const todayKey = () => new Date().toISOString().slice(0,10);
+
+// ============================================================
+// TOAST HOOK
+// ============================================================
+const useToast = () => {
+  const [toasts, setToasts] = useState([]);
+
+  const toast = useCallback((msg, type='success') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, msg, type }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500);
+  }, []);
+
+  return { toasts, toast };
+};
+
+// ============================================================
+// TOAST CONTAINER
+// ============================================================
+const ToastContainer = ({ toasts }) => (
+  <div className="toast-container">
+    {toasts.map(t => (
+      <div key={t.id} className={`toast toast-${t.type}`}>
+        <span>{t.type === 'success' ? '✓' : t.type === 'error' ? '✗' : t.type === 'warning' ? '⚠' : 'ℹ'}</span>
+        <span>{t.msg}</span>
+      </div>
+    ))}
+  </div>
+);
+
+// ============================================================
+// LIVE CLOCK
+// ============================================================
+const LiveClock = () => {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const i = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(i);
+  }, []);
+  return (
+    <div className="timer-clock">
+      {String(now.getHours()).padStart(2,'0')}:{String(now.getMinutes()).padStart(2,'0')}:{String(now.getSeconds()).padStart(2,'0')}
+    </div>
+  );
+};
+
+// ============================================================
+// LOGIN SCREEN
+// ============================================================
+const LoginScreen = ({ workers, settings, onLogin, lang, setLang, t }) => {
+  const [selected, setSelected] = useState(null);
+  const [pin, setPin] = useState('');
+  const [error, setError] = useState('');
+  const [adminMode, setAdminMode] = useState(false);
+
+  const handleLogin = () => {
+    if (!selected) return;
+    const worker = workers.find(w => w.id === selected);
+    if (!worker) return;
+    if (worker.pin === pin || (adminMode && pin === settings.adminPin)) {
+      onLogin(worker);
+    } else {
+      setError(t.loginError);
+      setPin('');
+      setTimeout(() => setError(''), 2000);
+    }
+  };
+
+  return (
+    <div className="login-screen">
+      <div style={{ position:'absolute', top:16, left:16, display:'flex', gap:8 }}>
+        <button className={`mode-chip ${lang==='fr'?'active':''}`} onClick={() => setLang('fr')}>🇫🇷 Français</button>
+        <button className={`mode-chip ${lang==='ar'?'active':''}`} onClick={() => setLang('ar')}>🇲🇦 العربية</button>
+      </div>
+
+      <div className="login-card">
+        <div className="login-logo">
+          <div className="login-logo-mark">✂️</div>
+          <div style={{ fontSize:24, fontWeight:900, color:'var(--gold)' }}>{t.appName}</div>
+          <div style={{ fontSize:13, color:'var(--text-muted)', marginTop:4 }}>{t.appSub}</div>
+        </div>
+
+        <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:8 }}>
+          {t.selectWorker}
+        </div>
+
+        <div className="worker-selector">
+          {workers.filter(w => !w.isAdmin).map(w => (
+            <div
+              key={w.id}
+              className={`worker-option ${selected === w.id ? 'selected' : ''}`}
+              onClick={() => { setSelected(w.id); setPin(''); setError(''); }}
+            >
+              <div className="worker-option-avatar" style={{ background: `linear-gradient(135deg, ${w.color}, ${w.color}88)` }}>
+                {(lang==='ar' ? w.name : w.nameFr || w.name).charAt(0)}
+              </div>
+              <div className="worker-option-name">{lang==='ar' ? w.name : (w.nameFr || w.name)}</div>
+              <div className="worker-option-role">{lang==='ar' ? w.role : (w.roleFr || w.role)}</div>
+            </div>
+          ))}
+        </div>
+
+        {selected && (
+          <div style={{ marginTop:20, animation:'fadeIn 0.3s ease' }}>
+            <div className="form-group">
+              <label className="form-label">{t.enterPin}</label>
+              <input
+                type="password"
+                className="form-control"
+                value={pin}
+                onChange={e => { setPin(e.target.value); setError(''); }}
+                onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                placeholder="••••"
+                maxLength={6}
+                autoFocus
+              />
+            </div>
+            {error && <div className="alert alert-danger" style={{ marginBottom:12 }}><span>✗</span>{error}</div>}
+            <button className="btn btn-primary" style={{ width:'100%' }} onClick={handleLogin}>
+              {t.loginBtn} →
+            </button>
+          </div>
+        )}
+
+        <hr className="divider" />
+        <div style={{ textAlign:'center' }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setAdminMode(true); setSelected('w3'); setPin(''); }}>
+            🔐 {t.adminAccess}
+          </button>
+        </div>
+
+        {adminMode && selected === 'w3' && (
+          <div style={{ marginTop:12, animation:'fadeIn 0.3s ease' }}>
+            <input
+              type="password"
+              className="form-control"
+              value={pin}
+              onChange={e => setPin(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              placeholder={t.adminPin + ': ••••'}
+              autoFocus
+            />
+            {error && <div className="alert alert-danger" style={{ marginTop:8 }}><span>✗</span>{error}</div>}
+            <button className="btn btn-primary" style={{ width:'100%', marginTop:10 }} onClick={handleLogin}>
+              {t.adminLoginTitle}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// TIME TRACKING PAGE
+// ============================================================
+const TimeTrackingPage = ({ data, setData, currentWorker, t, lang, toast }) => {
+  const [manualOpen, setManualOpen] = useState(false);
+  const manualFormDefault = () => ({ startTime: '00:00', endTime: '', breakMins: '0', notes: '', specialMode: 'normal', workerSig: false, managerSig: false });
+  const [form, setForm] = useState(manualFormDefault);
+  const [liveElapsed, setLiveElapsed] = useState(0);
+  const [breakElapsed, setBreakElapsed] = useState(0);
+  const [pointageWorkerId, setPointageWorkerId] = useState('');
+
+  const staffWorkers = useMemo(() => data.workers.filter(w => !w.isAdmin), [data.workers]);
+  useEffect(() => {
+    if (!currentWorker.isAdmin) return;
+    setPointageWorkerId(prev => {
+      if (!staffWorkers.length) return '';
+      if (prev && staffWorkers.some(w => w.id === prev)) return prev;
+      return staffWorkers[0].id;
+    });
+  }, [currentWorker.isAdmin, staffWorkers]);
+
+  const targetId = currentWorker.isAdmin ? pointageWorkerId : currentWorker.id;
+  const targetWorker = data.workers.find(w => w.id === targetId);
+  const session = (targetId && data.activeSessions[targetId]) || {};
+  const status = session.status || 'idle';
+  const workerDisplay = w => (lang === 'ar' ? w.name : (w.nameFr || w.name));
+  const punchReady = Boolean(targetId && targetWorker);
+
+  // Live timer
+  useEffect(() => {
+    const i = setInterval(() => {
+      if (session.startTs && status === 'working') {
+        const breakSoFar = session.totalBreakMins || 0;
+        const elapsed = (Date.now() - session.startTs) / 60000 - breakSoFar;
+        setLiveElapsed(Math.max(0, elapsed));
+      }
+      if (session.breakStartTs && status === 'break') {
+        const elapsed = (Date.now() - session.breakStartTs) / 60000;
+        setBreakElapsed(Math.max(0, elapsed));
+      }
+    }, 1000);
+    return () => clearInterval(i);
+  }, [session, status]);
+
+  const updateSession = (workerId, updates) => {
+    setData(prev => {
+      const nd = { ...prev, activeSessions: { ...prev.activeSessions, [workerId]: { ...prev.activeSessions[workerId], ...updates } } };
+      saveData(nd);
+      return nd;
+    });
+  };
+
+  const addAudit = (action) => {
+    setData(prev => {
+      const nd = { ...prev, auditLog: [{ ts: Date.now(), actor: currentWorker.name, action }, ...prev.auditLog].slice(0, 200) };
+      saveData(nd);
+      return nd;
+    });
+  };
+
+  const handleStart = () => {
+    if (!punchReady || !targetWorker) { toast(t.errorFillFields, 'error'); return; }
+    if (status === 'working') { toast(t.alreadyStarted, 'warning'); return; }
+    if (status === 'done') { toast(t.alreadyEnded, 'warning'); return; }
+    updateSession(targetId, { status: 'working', startTs: Date.now(), totalBreakMins: 0, date: todayKey() });
+    addAudit(currentWorker.isAdmin ? `${t.startWork} — ${workerDisplay(targetWorker)}` : `${t.startWork}`);
+    toast(t.startWork + ' ✓', 'success');
+  };
+
+  const handleEnd = () => {
+    if (!punchReady || !targetWorker) { toast(t.errorFillFields, 'error'); return; }
+    if (status === 'idle') { toast(t.notStarted, 'warning'); return; }
+    if (status === 'break') { toast(t.notOnBreak + ' - ' + t.endBreak + ' أولاً', 'warning'); return; }
+    if (status === 'done') { toast(t.alreadyEnded, 'warning'); return; }
+
+    const endTs = Date.now();
+    const totalBreak = session.totalBreakMins || 0;
+    const workMins = calcWorkMinutes(session.startTs, endTs, totalBreak);
+    const officialMins = (data.settings.officialHoursPerDay || 8) * 60;
+    const overtimeMins = Math.max(0, workMins - officialMins);
+
+    const record = {
+      id: 'r' + Date.now(),
+      workerId: targetWorker.id,
+      workerName: targetWorker.name,
+      date: session.date || todayKey(),
+      dateTs: session.startTs,
+      startTs: session.startTs,
+      endTs,
+      breakMins: totalBreak,
+      workMins,
+      overtimeMins,
+      notes: '',
+      specialMode: session.specialMode || 'normal',
+      workerSig: false,
+      managerSig: false,
+      auditEdits: [],
+    };
+
+    setData(prev => {
+      const nd = {
+        ...prev,
+        records: [record, ...prev.records],
+        activeSessions: { ...prev.activeSessions, [targetId]: { status: 'done', lastRecord: record } },
+        auditLog: [{
+          ts: Date.now(),
+          actor: currentWorker.name,
+          action: currentWorker.isAdmin
+            ? `${t.endWork} — ${workerDisplay(targetWorker)} (${minutesToDisplay(workMins,t)})`
+            : `${t.endWork} (${minutesToDisplay(workMins,t)})`
+        }, ...prev.auditLog].slice(0,200)
+      };
+      saveData(nd);
+      return nd;
+    });
+    toast(t.endWork + ' - ' + minutesToDisplay(workMins, t), 'success');
+  };
+
+  const handleBreakStart = () => {
+    if (!punchReady || !targetWorker) { toast(t.errorFillFields, 'error'); return; }
+    if (status !== 'working') { toast(t.notStarted, 'warning'); return; }
+    if (status === 'break') { toast(t.alreadyOnBreak, 'warning'); return; }
+    updateSession(targetId, { status: 'break', breakStartTs: Date.now() });
+    addAudit(currentWorker.isAdmin ? `${t.startBreak} — ${workerDisplay(targetWorker)}` : t.startBreak);
+    toast(t.startBreak + ' ✓', 'warning');
+  };
+
+  const handleBreakEnd = () => {
+    if (!punchReady || !targetWorker) { toast(t.errorFillFields, 'error'); return; }
+    if (status !== 'break') { toast(t.notOnBreak, 'warning'); return; }
+    const breakMins = Math.round((Date.now() - session.breakStartTs) / 60000);
+    const totalBreak = (session.totalBreakMins || 0) + breakMins;
+    updateSession(targetId, { status: 'working', totalBreakMins: totalBreak, breakStartTs: null });
+    addAudit(currentWorker.isAdmin
+      ? `${t.endBreak} — ${workerDisplay(targetWorker)} (${breakMins} ${t.mins})`
+      : `${t.endBreak} (${breakMins} ${t.mins})`);
+    toast(t.endBreak + ` (${breakMins} ${t.mins})`, 'info');
+  };
+
+  const handleManualSave = () => {
+    if (!form.startTime || !form.endTime) { toast(t.errorFillFields, 'error'); return; }
+    const today = new Date();
+    const parseTime = (t) => {
+      const [h,m] = t.split(':').map(Number);
+      const d = new Date(today);
+      d.setHours(h, m, 0, 0);
+      return d.getTime();
+    };
+    const startTs = parseTime(form.startTime);
+    const endTs = parseTime(form.endTime);
+    if (endTs <= startTs) { toast(t.errorEndBeforeStart, 'error'); return; }
+    const breakMins = parseInt(form.breakMins) || 0;
+    const workMins = calcWorkMinutes(startTs, endTs, breakMins);
+    const officialMins = (data.settings.officialHoursPerDay || 8) * 60;
+    const overtimeMins = Math.max(0, workMins - officialMins);
+
+    const record = {
+      id: 'r' + Date.now(),
+      workerId: currentWorker.id,
+      workerName: currentWorker.name,
+      date: todayKey(),
+      dateTs: startTs,
+      startTs, endTs, breakMins, workMins, overtimeMins,
+      notes: form.notes,
+      specialMode: form.specialMode,
+      workerSig: form.workerSig,
+      managerSig: form.managerSig,
+      auditEdits: [],
+    };
+
+    setData(prev => {
+      const nd = { ...prev, records: [record, ...prev.records], auditLog: [{ ts: Date.now(), actor: currentWorker.name, action: `${t.manualEntry}: ${form.startTime}-${form.endTime}` }, ...prev.auditLog].slice(0,200) };
+      saveData(nd);
+      return nd;
+    });
+    toast(t.savedSuccess, 'success');
+    setManualOpen(false);
+    setForm(manualFormDefault());
+  };
+
+  const todayRecord = data.records.find(r => r.workerId === targetId && r.date === todayKey());
+  const officialMins = (data.settings.officialHoursPerDay || 8) * 60;
+
+  // Progress calculation
+  let progressPct = 0;
+  if (status === 'working') {
+    progressPct = Math.min(100, (liveElapsed / officialMins) * 100);
+  } else if (todayRecord) {
+    progressPct = Math.min(100, (todayRecord.workMins / officialMins) * 100);
+  }
+
+  return (
+    <div className="animate-in">
+      <div className="page-header">
+        <div>
+          <div className="page-title">⏱ {t.timeTracking}</div>
+          <div className="page-subtitle">
+            {formatDate(Date.now(), lang)} — {currentWorker.isAdmin && targetWorker ? workerDisplay(targetWorker) : (lang==='ar' ? currentWorker.name : (currentWorker.nameFr || currentWorker.name))}
+          </div>
+          {currentWorker.isAdmin && (
+            <div className="text-muted text-sm" style={{ marginTop:6, maxWidth:520 }}>{t.managerPointageHint}</div>
+          )}
+        </div>
+        {!currentWorker.isAdmin && (
+          <button className="btn btn-ghost btn-sm" onClick={() => { setForm(manualFormDefault()); setManualOpen(true); }}>
+            ✏️ {t.manualEntry}
+          </button>
+        )}
+      </div>
+
+      {currentWorker.isAdmin && (
+        <div className="card mb-6">
+          <div className="form-group" style={{ marginBottom:0 }}>
+            <label className="form-label">{t.worker}</label>
+            <select className="form-control" value={pointageWorkerId} onChange={e => setPointageWorkerId(e.target.value)} disabled={!staffWorkers.length}>
+              {staffWorkers.map(w => (
+                <option key={w.id} value={w.id}>{workerDisplay(w)} — {lang==='ar' ? w.role : (w.roleFr || w.role)}</option>
+              ))}
+            </select>
+            {!staffWorkers.length && <div className="text-muted text-sm" style={{ marginTop:8 }}>{t.addWorker}</div>}
+          </div>
+        </div>
+      )}
+
+      {/* Clock */}
+      <div className="card mb-6">
+        <div className="timer-display">
+          <LiveClock />
+          <div className="timer-date">{new Date().toLocaleDateString(lang==='ar'?'ar-MA':'fr-FR', { weekday:'long', day:'numeric', month:'long' })}</div>
+          <div style={{ marginTop:12 }}>
+            <span className={`timer-status status-${status}`}>
+              <span className="status-dot"></span>
+              {status === 'working' ? t.working : status === 'break' ? t.onBreak : status === 'done' ? t.done : t.idle}
+            </span>
+          </div>
+
+          {status === 'working' && (
+            <div style={{ marginTop:16, fontSize:14, color:'var(--text-muted)' }}>
+              ⏳ {formatDurationHMS(liveElapsed)} {lang==='ar'?'منذ البداية':'depuis le début'}
+            </div>
+          )}
+
+          {status === 'break' && (
+            <div style={{ marginTop:16, fontSize:14, color:'var(--warning)' }}>
+              ☕ {formatDurationHMS(breakElapsed)} {lang==='ar'?'في الاستراحة':'en pause'}
+            </div>
+          )}
+        </div>
+
+        {/* Progress */}
+        <div style={{ padding:'0 20px 20px' }}>
+          <div className="flex-between" style={{ marginBottom:6 }}>
+            <span className="text-sm text-muted">{t.performance}</span>
+            <span className="text-sm" style={{ color: progressPct >= 100 ? 'var(--warning)' : 'var(--gold)' }}>
+              {Math.round(progressPct)}% {t.of} {data.settings.officialHoursPerDay}{t.hr}
+            </span>
+          </div>
+          <div className="progress-bar">
+            <div className="progress-fill" style={{ width: progressPct + '%', ...(progressPct >= 100 ? { background:'linear-gradient(90deg,var(--warning),#F39C12)' } : {}) }}></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="card mb-6">
+        <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+          <button className="time-btn time-btn-start" onClick={handleStart} disabled={!punchReady||status==='working'||status==='break'||status==='done'}>
+            <span className="time-btn-icon">▶️</span>
+            {t.startWork}
+          </button>
+          <button className="time-btn time-btn-end" onClick={handleEnd} disabled={!punchReady||status==='idle'||status==='done'}>
+            <span className="time-btn-icon">⏹️</span>
+            {t.endWork}
+          </button>
+          <button className="time-btn time-btn-break" onClick={handleBreakStart} disabled={!punchReady||status!=='working'}>
+            <span className="time-btn-icon">☕</span>
+            {t.startBreak}
+          </button>
+          <button className="time-btn time-btn-break-end" onClick={handleBreakEnd} disabled={!punchReady||status!=='break'}>
+            <span className="time-btn-icon">▶️</span>
+            {t.endBreak}
+          </button>
+        </div>
+      </div>
+
+      {/* Today's summary */}
+      {todayRecord && (
+        <div className="card animate-in">
+          <div className="card-title">📋 {lang==='ar'?'سجل اليوم':'Récap du jour'}</div>
+          <div className="grid-2" style={{ gap:12 }}>
+            <div className="stat-card">
+              <span className="stat-icon">🕐</span>
+              <div className="stat-value text-gold">{formatTime(todayRecord.startTs)}</div>
+              <div className="stat-label">{t.checkIn}</div>
+            </div>
+            <div className="stat-card">
+              <span className="stat-icon">🕔</span>
+              <div className="stat-value" style={{ color:'var(--danger)' }}>{formatTime(todayRecord.endTs)}</div>
+              <div className="stat-label">{t.checkOut}</div>
+            </div>
+            <div className="stat-card">
+              <span className="stat-icon">⏱</span>
+              <div className="stat-value text-success">{minutesToHHMM(todayRecord.workMins, t)}</div>
+              <div className="stat-label">{t.workHours}</div>
+            </div>
+            <div className="stat-card">
+              <span className="stat-icon">🔥</span>
+              <div className="stat-value" style={{ color: todayRecord.overtimeMins > 0 ? 'var(--warning)' : 'var(--text-dim)' }}>
+                {todayRecord.overtimeMins > 0 ? minutesToHHMM(todayRecord.overtimeMins, t) : minutesToHHMM(0, t)}
+              </div>
+              <div className="stat-label">{t.overtime}</div>
+            </div>
+          </div>
+          {todayRecord.breakMins > 0 && (
+            <div style={{ marginTop:12, fontSize:13, color:'var(--text-muted)' }}>
+              ☕ {todayRecord.breakMins} {t.mins_break}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Manual Entry Modal (workers only) */}
+      {!currentWorker.isAdmin && manualOpen && (
+        <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setManualOpen(false)}>
+          <div className="modal">
+            <div className="modal-header">
+              <div className="modal-title">✏️ {t.manualEntry}</div>
+              <button className="close-btn" onClick={() => setManualOpen(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="grid-2">
+                <div className="form-group">
+                  <label className="form-label">{t.workStart}</label>
+                  <input type="time" className="form-control" value={form.startTime} onChange={e => setForm({...form, startTime: e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">{t.workEnd}</label>
+                  <input type="time" className="form-control" value={form.endTime} onChange={e => setForm({...form, endTime: e.target.value})} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">{t.breakDuration}</label>
+                <input type="number" className="form-control" value={form.breakMins} min="0" max="480" onChange={e => setForm({...form, breakMins: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">{t.specialMode}</label>
+                <div className="special-mode-selector">
+                  {['normal','ramadan','halfDay'].map(m => (
+                    <div key={m} className={`mode-chip ${form.specialMode===m?'active':''}`} onClick={() => setForm({...form, specialMode: m})}>
+                      {m==='normal'?`🕐 ${t.normal}`:m==='ramadan'?`🌙 ${t.ramadan}`:`☀️ ${t.halfDay}`}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">{t.notes}</label>
+                <textarea className="form-control" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder="..." />
+              </div>
+              <div className="grid-2">
+                <div>
+                  <div className="form-label" style={{ marginBottom:8 }}>{t.workerSignature}</div>
+                  <div className="signature-pad" onClick={() => setForm({...form, workerSig: !form.workerSig})} style={{ borderColor: form.workerSig ? 'var(--success)' : undefined, color: form.workerSig ? 'var(--success)' : undefined }}>
+                    {form.workerSig ? <><span style={{fontSize:24}}>✍️</span><span>{t.signedWorker}</span></> : <><span style={{fontSize:24}}>✍️</span><span>{t.signHere}</span></>}
+                  </div>
+                </div>
+                <div>
+                  <div className="form-label" style={{ marginBottom:8 }}>{t.managerSignature}</div>
+                  <div className="signature-pad" onClick={() => setForm({...form, managerSig: !form.managerSig})} style={{ borderColor: form.managerSig ? 'var(--info)' : undefined, color: form.managerSig ? 'var(--info)' : undefined }}>
+                    {form.managerSig ? <><span style={{fontSize:24}}>✍️</span><span>{t.signedManager}</span></> : <><span style={{fontSize:24}}>👔</span><span>{t.signHere}</span></>}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setManualOpen(false)}>{t.cancel}</button>
+              <button className="btn btn-primary" onClick={handleManualSave}>{t.save}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================================
+// DASHBOARD PAGE
+// ============================================================
+const DashboardPage = ({ data, currentWorker, t, lang }) => {
+  const today = todayKey();
+  const thisMonth = getMonthKey(Date.now());
+
+  const todayRecords = data.records.filter(r => r.date === today);
+  const monthRecords = data.records.filter(r => getMonthKey(r.dateTs) === thisMonth);
+
+  const myMonthRecords = monthRecords.filter(r => r.workerId === currentWorker.id);
+  const myTodayRecord = todayRecords.find(r => r.workerId === currentWorker.id);
+
+  const totalMonthMins = myMonthRecords.reduce((s,r) => s + r.workMins, 0);
+  const totalOvertimeMins = myMonthRecords.reduce((s,r) => s + r.overtimeMins, 0);
+  const activeNow = Object.values(data.activeSessions).filter(s => s.status === 'working' || s.status === 'break').length;
+
+  // Per-worker monthly stats
+  const workerStats = data.workers.filter(w => !w.isAdmin).map(w => {
+    const recs = monthRecords.filter(r => r.workerId === w.id);
+    return {
+      worker: w,
+      days: recs.length,
+      totalMins: recs.reduce((s,r) => s + r.workMins, 0),
+      overtimeMins: recs.reduce((s,r) => s + r.overtimeMins, 0),
+    };
+  });
+
+  return (
+    <div className="animate-in">
+      <div className="page-header">
+        <div>
+          <div className="page-title">📊 {t.dashboard}</div>
+          <div className="page-subtitle">{getMonthLabel(thisMonth, lang)}</div>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="stats-grid mb-6">
+        <div className="stat-card">
+          <span className="stat-icon">⏱</span>
+          <div className="stat-value text-gold">{minutesToHHMM(myTodayRecord?.workMins || 0, t)}</div>
+          <div className="stat-label">{t.todayHours}</div>
+          <div className="stat-sub">{myTodayRecord ? `${formatTime(myTodayRecord.startTs)} - ${formatTime(myTodayRecord.endTs)}` : '--'}</div>
+        </div>
+        <div className="stat-card">
+          <span className="stat-icon">🔥</span>
+          <div className="stat-value" style={{ color:'var(--warning)' }}>{minutesToHHMM(myTodayRecord?.overtimeMins || 0, t)}</div>
+          <div className="stat-label">{t.overtimeToday}</div>
+        </div>
+        <div className="stat-card">
+          <span className="stat-icon">📅</span>
+          <div className="stat-value text-success">{minutesToHHMM(totalMonthMins, t)}</div>
+          <div className="stat-label">{t.totalHours} ({t.thisMonth})</div>
+          <div className="stat-sub">{myMonthRecords.length} {t.totalWorkingDays}</div>
+        </div>
+        <div className="stat-card">
+          <span className="stat-icon">🏆</span>
+          <div className="stat-value" style={{ color:'var(--warning)' }}>{minutesToHHMM(totalOvertimeMins, t)}</div>
+          <div className="stat-label">{t.totalOvertime}</div>
+        </div>
+      </div>
+
+      {/* Workers overview (admin only) */}
+      {currentWorker.isAdmin && (
+        <div className="card mb-6">
+          <div className="card-title">👥 {t.workers} — {t.thisMonth}</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:16, marginTop:8 }}>
+            {workerStats.map(ws => {
+              const pct = Math.min(100, (ws.totalMins / ((data.settings.officialHoursPerDay||8)*60*22))*100);
+              return (
+                <div key={ws.worker.id}>
+                  <div className="flex-between" style={{ marginBottom:6 }}>
+                    <div className="flex items-center gap-2">
+                      <div style={{ width:10, height:10, borderRadius:'50%', background:ws.worker.color }}></div>
+                      <span style={{ fontSize:14, fontWeight:600 }}>{lang==='ar' ? ws.worker.name : (ws.worker.nameFr||ws.worker.name)}</span>
+                      <span className="badge badge-muted">{ws.days} {lang==='ar'?'يوم':'jours'}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-gold font-bold">{minutesToHHMM(ws.totalMins, t)}</span>
+                      {ws.overtimeMins > 0 && <span className="badge badge-warning">+{minutesToHHMM(ws.overtimeMins, t)}</span>}
+                    </div>
+                  </div>
+                  <div className="progress-bar">
+                    <div className="progress-fill" style={{ width:pct+'%', background:`linear-gradient(90deg, ${ws.worker.color}88, ${ws.worker.color})` }}></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Recent records */}
+      <div className="card">
+        <div className="card-title">🕐 {lang==='ar'?'آخر السجلات':'Derniers enregistrements'}</div>
+        {data.records.filter(r => !currentWorker.isAdmin ? r.workerId === currentWorker.id : true).slice(0,8).length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">📋</div>
+            <div className="empty-title">{t.noRecords}</div>
+            <div className="empty-desc">{t.noRecordsDesc}</div>
+          </div>
+        ) : (
+          <div className="table-wrapper" style={{ marginTop:12 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>{t.date}</th>
+                  {currentWorker.isAdmin && <th>{t.worker}</th>}
+                  <th>{t.checkIn}</th>
+                  <th>{t.checkOut}</th>
+                  <th>{t.workHours}</th>
+                  <th>{t.overtime}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.records.filter(r => !currentWorker.isAdmin ? r.workerId === currentWorker.id : true).slice(0,8).map(r => (
+                  <tr key={r.id}>
+                    <td><span style={{ fontSize:12, color:'var(--text-muted)' }}>{r.date}</span></td>
+                    {currentWorker.isAdmin && (
+                      <td>
+                        <div className="flex items-center gap-2">
+                          <div className="color-dot" style={{ background: data.workers.find(w=>w.id===r.workerId)?.color || 'var(--gold)' }}></div>
+                          {recordWorkerLabel(data, r.workerId, lang)}
+                        </div>
+                      </td>
+                    )}
+                    <td><span className="badge badge-success">{formatTime(r.startTs)}</span></td>
+                    <td><span className="badge badge-danger">{formatTime(r.endTs)}</span></td>
+                    <td><span className="font-bold text-gold">{minutesToHHMM(r.workMins, t)}</span></td>
+                    <td>
+                      {r.overtimeMins > 0
+                        ? <span className="badge badge-warning">+{minutesToHHMM(r.overtimeMins, t)}</span>
+                        : <span className="text-muted">—</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// RECORDS / HISTORY PAGE
+// ============================================================
+const RecordsPage = ({ data, setData, currentWorker, t, lang, toast }) => {
+  const [filterWorker, setFilterWorker] = useState(currentWorker.isAdmin ? 'all' : currentWorker.id);
+  const [filterMonth, setFilterMonth] = useState(getMonthKey(Date.now()));
+  const [editRecord, setEditRecord] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  const months = useMemo(() => {
+    const keys = [...new Set(data.records.map(r => getMonthKey(r.dateTs)))].sort().reverse();
+    if (!keys.includes(getMonthKey(Date.now()))) keys.unshift(getMonthKey(Date.now()));
+    return keys;
+  }, [data.records]);
+
+  const filtered = data.records.filter(r => {
+    const mOk = !filterMonth || getMonthKey(r.dateTs) === filterMonth;
+    const wOk = filterWorker === 'all' || r.workerId === filterWorker;
+    return mOk && wOk;
+  }).sort((a,b) => b.dateTs - a.dateTs);
+
+  const handleEdit = (r) => {
+    setEditRecord(r);
+    const start = new Date(r.startTs);
+    const end = new Date(r.endTs);
+    setEditForm({
+      startTime: `${String(start.getHours()).padStart(2,'0')}:${String(start.getMinutes()).padStart(2,'0')}`,
+      endTime: `${String(end.getHours()).padStart(2,'0')}:${String(end.getMinutes()).padStart(2,'0')}`,
+      breakMins: String(r.breakMins),
+      notes: r.notes || '',
+      workerSig: r.workerSig || false,
+      managerSig: r.managerSig || false,
+    });
+  };
+
+  const handleSaveEdit = () => {
+    if (!editForm.startTime || !editForm.endTime) { toast(t.errorFillFields, 'error'); return; }
+    const d = new Date(editRecord.dateTs);
+    const parseTime = (ts) => {
+      const [h,m] = ts.split(':').map(Number);
+      const nd = new Date(d);
+      nd.setHours(h,m,0,0);
+      return nd.getTime();
+    };
+    const startTs = parseTime(editForm.startTime);
+    const endTs = parseTime(editForm.endTime);
+    if (endTs <= startTs) { toast(t.errorEndBeforeStart, 'error'); return; }
+    const breakMins = parseInt(editForm.breakMins)||0;
+    const workMins = calcWorkMinutes(startTs, endTs, breakMins);
+    const officialMins = (data.settings.officialHoursPerDay||8)*60;
+    const overtimeMins = Math.max(0, workMins - officialMins);
+    const edit = { ts: Date.now(), actor: currentWorker.name, oldStart: editRecord.startTs, oldEnd: editRecord.endTs, newStart: startTs, newEnd: endTs };
+
+    setData(prev => {
+      const nd = {
+        ...prev,
+        records: prev.records.map(r => r.id === editRecord.id ? { ...r, startTs, endTs, breakMins, workMins, overtimeMins, notes: editForm.notes, workerSig: editForm.workerSig, managerSig: editForm.managerSig, auditEdits: [...(r.auditEdits||[]), edit] } : r),
+        auditLog: [{ ts: Date.now(), actor: currentWorker.name, action: `${t.edit}: ${editRecord.date} (${recordWorkerLabel(data, editRecord.workerId, lang)})` }, ...prev.auditLog].slice(0,200)
+      };
+      saveData(nd);
+      return nd;
+    });
+    toast(t.updatedSuccess, 'success');
+    setEditRecord(null);
+  };
+
+  const handleDelete = (id) => {
+    setData(prev => {
+      const rec = prev.records.find(r => r.id === id);
+      const nd = {
+        ...prev,
+        records: prev.records.filter(r => r.id !== id),
+        auditLog: [{ ts: Date.now(), actor: currentWorker.name, action: `${t.delete}: ${rec?.date} (${rec ? recordWorkerLabel(data, rec.workerId, lang) : ''})` }, ...prev.auditLog].slice(0,200)
+      };
+      saveData(nd);
+      return nd;
+    });
+    toast(t.deletedSuccess, 'warning');
+    setDeleteConfirm(null);
+  };
+
+  const totalMins = filtered.reduce((s,r) => s+r.workMins, 0);
+  const totalOT = filtered.reduce((s,r) => s+r.overtimeMins, 0);
+
+  return (
+    <div className="animate-in">
+      <div className="page-header">
+        <div>
+          <div className="page-title">📋 {t.history}</div>
+          <div className="page-subtitle">{filtered.length} {t.totalRecords}</div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="card mb-6">
+        <div className="grid-2" style={{ gap:12 }}>
+          <div className="form-group" style={{ marginBottom:0 }}>
+            <label className="form-label">{t.filterMonth}</label>
+            <select className="form-control" value={filterMonth} onChange={e => setFilterMonth(e.target.value)}>
+              {months.map(m => <option key={m} value={m}>{getMonthLabel(m, lang)}</option>)}
+            </select>
+          </div>
+          {currentWorker.isAdmin && (
+            <div className="form-group" style={{ marginBottom:0 }}>
+              <label className="form-label">{t.worker}</label>
+              <select className="form-control" value={filterWorker} onChange={e => setFilterWorker(e.target.value)}>
+                <option value="all">{t.allWorkers}</option>
+                {data.workers.filter(w=>!w.isAdmin).map(w => <option key={w.id} value={w.id}>{lang==='ar'?w.name:(w.nameFr||w.name)}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Summary bar */}
+      {filtered.length > 0 && (
+        <div className="flex gap-3 flex-wrap mb-6">
+          <div className="badge badge-gold" style={{ padding:'8px 16px', fontSize:13 }}>
+            ⏱ {lang==='ar'?'المجموع':'Total'}: <strong style={{ marginRight:4 }}>{minutesToHHMM(totalMins, t)}</strong>
+          </div>
+          <div className="badge badge-warning" style={{ padding:'8px 16px', fontSize:13 }}>
+            🔥 {t.overtime}: <strong style={{ marginRight:4 }}>{minutesToHHMM(totalOT, t)}</strong>
+          </div>
+          <div className="badge badge-info" style={{ padding:'8px 16px', fontSize:13 }}>
+            📅 {filtered.length} {lang==='ar'?'سجل':'enregistrements'}
+          </div>
+        </div>
+      )}
+
+      {/* Table */}
+      {filtered.length === 0 ? (
+        <div className="card">
+          <div className="empty-state">
+            <div className="empty-icon">📋</div>
+            <div className="empty-title">{t.noRecords}</div>
+            <div className="empty-desc">{t.noRecordsDesc}</div>
+          </div>
+        </div>
+      ) : (
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>{t.date}</th>
+                {currentWorker.isAdmin && <th>{t.worker}</th>}
+                <th>{t.checkIn}</th>
+                <th>{t.checkOut}</th>
+                <th>{t.break}</th>
+                <th>{t.workHours}</th>
+                <th>{t.overtime}</th>
+                <th>{t.notes}</th>
+                <th>{lang==='ar'?'توقيع':'Sig.'}</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(r => (
+                <tr key={r.id}>
+                  <td>
+                    <div style={{ fontSize:13, fontWeight:600 }}>{r.date}</div>
+                    {r.specialMode && r.specialMode !== 'normal' && (
+                      <span className="badge badge-info" style={{ marginTop:2, fontSize:10 }}>
+                        {r.specialMode === 'ramadan' ? '🌙' : '☀️'} {t[r.specialMode]}
+                      </span>
+                    )}
+                  </td>
+                  {currentWorker.isAdmin && (
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <div className="color-dot" style={{ background: data.workers.find(w=>w.id===r.workerId)?.color||'var(--gold)' }}></div>
+                        <span style={{ fontSize:13, fontWeight:600 }}>{recordWorkerLabel(data, r.workerId, lang)}</span>
+                      </div>
+                    </td>
+                  )}
+                  <td><span className="badge badge-success">{formatTime(r.startTs)}</span></td>
+                  <td><span className="badge badge-danger">{formatTime(r.endTs)}</span></td>
+                  <td><span style={{ fontSize:12, color:'var(--text-muted)' }}>{r.breakMins} {t.min}</span></td>
+                  <td><span className="font-bold text-gold">{minutesToHHMM(r.workMins, t)}</span></td>
+                  <td>
+                    {r.overtimeMins > 0
+                      ? <span className="badge badge-warning">+{minutesToHHMM(r.overtimeMins, t)}</span>
+                      : <span className="text-muted" style={{fontSize:12}}>—</span>}
+                  </td>
+                  <td><span style={{ fontSize:12, color:'var(--text-muted)', maxWidth:100, display:'block', overflow:'hidden', textOverflow:'ellipsis' }}>{r.notes||'—'}</span></td>
+                  <td>
+                    <div className="flex" style={{ gap:4 }}>
+                      <span title={t.workerSignature}>{r.workerSig ? '✍️' : '—'}</span>
+                      <span title={t.managerSignature}>{r.managerSig ? '👔' : '—'}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="flex" style={{ gap:4 }}>
+                      {(currentWorker.isAdmin || r.workerId === currentWorker.id) && (
+                        <button className="btn btn-ghost btn-sm btn-icon" onClick={() => handleEdit(r)} title={t.edit}>✏️</button>
+                      )}
+                      {currentWorker.isAdmin && (
+                        <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setDeleteConfirm(r.id)} title={t.delete}>🗑</button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editRecord && (
+        <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setEditRecord(null)}>
+          <div className="modal">
+            <div className="modal-header">
+              <div className="modal-title">✏️ {t.editRecord} — {editRecord.date}</div>
+              <button className="close-btn" onClick={() => setEditRecord(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              {editRecord.auditEdits?.length > 0 && (
+                <div className="alert alert-info" style={{ marginBottom:16 }}>
+                  ℹ️ {lang==='ar'?`عُدّل ${editRecord.auditEdits.length} مرة`:`Modifié ${editRecord.auditEdits.length} fois`}
+                </div>
+              )}
+              <div className="grid-2">
+                <div className="form-group">
+                  <label className="form-label">{t.workStart}</label>
+                  <input type="time" className="form-control" value={editForm.startTime} onChange={e => setEditForm({...editForm, startTime:e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">{t.workEnd}</label>
+                  <input type="time" className="form-control" value={editForm.endTime} onChange={e => setEditForm({...editForm, endTime:e.target.value})} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">{t.breakDuration}</label>
+                <input type="number" className="form-control" value={editForm.breakMins} min="0" onChange={e => setEditForm({...editForm, breakMins:e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">{t.notes}</label>
+                <textarea className="form-control" value={editForm.notes} onChange={e => setEditForm({...editForm, notes:e.target.value})} />
+              </div>
+              <div className="grid-2">
+                <div>
+                  <div className="form-label" style={{ marginBottom:8 }}>{t.workerSignature}</div>
+                  <div className="signature-pad" onClick={() => setEditForm({...editForm, workerSig:!editForm.workerSig})} style={{ borderColor:editForm.workerSig?'var(--success)':undefined, color:editForm.workerSig?'var(--success)':undefined }}>
+                    <span style={{fontSize:22}}>✍️</span>
+                    <span>{editForm.workerSig ? t.signedWorker : t.signHere}</span>
+                  </div>
+                </div>
+                <div>
+                  <div className="form-label" style={{ marginBottom:8 }}>{t.managerSignature}</div>
+                  <div className="signature-pad" onClick={() => setEditForm({...editForm, managerSig:!editForm.managerSig})} style={{ borderColor:editForm.managerSig?'var(--info)':undefined, color:editForm.managerSig?'var(--info)':undefined }}>
+                    <span style={{fontSize:22}}>👔</span>
+                    <span>{editForm.managerSig ? t.signedManager : t.signHere}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setEditRecord(null)}>{t.cancel}</button>
+              <button className="btn btn-primary" onClick={handleSaveEdit}>{t.save}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirm Modal */}
+      {deleteConfirm && (
+        <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setDeleteConfirm(null)}>
+          <div className="modal" style={{ maxWidth:380 }}>
+            <div className="modal-body" style={{ textAlign:'center', padding:'32px 24px' }}>
+              <div style={{ fontSize:48, marginBottom:16 }}>⚠️</div>
+              <div style={{ fontSize:16, fontWeight:700, marginBottom:8 }}>{t.deleteConfirm}</div>
+              <div style={{ fontSize:13, color:'var(--text-muted)' }}>{lang==='ar'?'لا يمكن التراجع عن هذا الإجراء':'Cette action est irréversible'}</div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
+              <button className="btn btn-danger" onClick={() => handleDelete(deleteConfirm)}>{t.delete}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================================
+// REPORTS PAGE
+// ============================================================
+const ReportsPage = ({ data, t, lang, toast }) => {
+  const [filterMonth, setFilterMonth] = useState(getMonthKey(Date.now()));
+  const [filterWorker, setFilterWorker] = useState('all');
+  const officialMins = (data.settings.officialHoursPerDay || 8) * 60;
+
+  const months = useMemo(() => {
+    const keys = [...new Set(data.records.map(r => getMonthKey(r.dateTs)))].sort().reverse();
+    if (!keys.includes(getMonthKey(Date.now()))) keys.unshift(getMonthKey(Date.now()));
+    return keys;
+  }, [data.records]);
+
+  const monthRecords = data.records.filter(r => getMonthKey(r.dateTs) === filterMonth);
+
+  const workerStats = data.workers.filter(w => !w.isAdmin).map(w => {
+    const recs = monthRecords.filter(r => r.workerId === w.id);
+    const totalMins = recs.reduce((s,r) => s+r.workMins, 0);
+    const overtimeMins = recs.reduce((s,r) => s+r.overtimeMins, 0);
+    const avgMins = recs.length ? Math.round(totalMins/recs.length) : 0;
+    const otSplit = recs.reduce((acc, r) => {
+      const sp = splitOvertimeBy8PM(r.startTs, r.endTs, r.breakMins, r.overtimeMins, officialMins);
+      return { before8: acc.before8 + sp.before8PM, after8: acc.after8 + sp.after8PM };
+    }, { before8: 0, after8: 0 });
+    return { worker: w, recs, totalMins, overtimeMins, overtimeBefore8: otSplit.before8, overtimeAfter8: otSplit.after8, avgMins, days: recs.length };
+  }).filter(ws => filterWorker === 'all' || ws.worker.id === filterWorker);
+
+  const exportPDF = () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'landscape' });
+    doc.setFont('Helvetica');
+    doc.setFontSize(18);
+    doc.text('Le Boudoir Majorelle - ' + getMonthLabel(filterMonth, 'fr'), 14, 18);
+    doc.setFontSize(10);
+    doc.text('Rapport généré le: ' + new Date().toLocaleDateString('fr-FR'), 14, 26);
+
+    let y = 38;
+    workerStats.forEach(ws => {
+      doc.setFontSize(12);
+      doc.setTextColor(40);
+      doc.text((ws.worker.nameFr || ws.worker.name) + ' - ' + (ws.worker.roleFr || ws.worker.role), 14, y);
+      y += 7;
+      doc.setFontSize(9);
+      doc.setTextColor(100);
+      doc.text(`Jours: ${ws.days} | Total: ${minutesToHHMM(ws.totalMins, t)} | Sup.av20: ${minutesToHHMM(ws.overtimeBefore8, t)} | Sup.ap20: ${minutesToHHMM(ws.overtimeAfter8, t)} | Moy./j: ${minutesToHHMM(ws.avgMins, t)}`, 14, y);
+      y += 5;
+
+      // Table header
+      const cols = ['Date','Arr.','Dép.','Pause','H.','Sup.av','Sup.ap','>20h','Notes'];
+      const colW = [26,18,18,16,20,22,22,14,52];
+      let x = 14;
+      doc.setFillColor(30,30,40);
+      doc.setTextColor(200,168,76);
+      doc.setFontSize(7);
+      cols.forEach((c,i) => { doc.text(c, x+2, y+5); x += colW[i]; });
+      y += 8;
+      doc.setTextColor(40);
+
+      ws.recs.forEach(r => {
+        const sp = splitOvertimeBy8PM(r.startTs, r.endTs, r.breakMins, r.overtimeMins, officialMins);
+        const after8 = isCheckoutAfter8PM(r.endTs);
+        x = 14;
+        const row = [
+          r.date,
+          formatTime(r.startTs),
+          formatTime(r.endTs),
+          r.breakMins+'m',
+          minutesToHHMM(r.workMins, t),
+          sp.before8PM > 0 ? '+'+minutesToHHMM(sp.before8PM, t) : '-',
+          sp.after8PM > 0 ? '+'+minutesToHHMM(sp.after8PM, t) : '-',
+          after8 ? 'Oui' : '-',
+          (r.notes||'').slice(0,28)
+        ];
+        row.forEach((c,i) => { doc.text(String(c), x+2, y+4); x += colW[i]; });
+        y += 7;
+        if (y > 185) { doc.addPage(); y = 18; }
+      });
+      y += 6;
+    });
+
+    doc.save(`LeBoudoirMajorelle_${filterMonth}.pdf`);
+    toast('PDF exported ✓', 'success');
+  };
+
+  const exportExcel = () => {
+    const wb = XLSX.utils.book_new();
+    const hB = lang==='ar'?'إضافي قبل 20:00':'Sup. avant 20h';
+    const hA = lang==='ar'?'إضافي بعد 20:00':'Sup. après 20h';
+    const hO = lang==='ar'?'خروج بعد 20:00':'Sortie après 20h';
+    workerStats.forEach(ws => {
+      const rows = [
+        [lang==='ar'?'التاريخ':'Date', lang==='ar'?'دخول':'Arrivée', lang==='ar'?'خروج':'Départ', lang==='ar'?'استراحة':'Pause(min)', lang==='ar'?'ساعات':'Heures(min)', hB+'(min)', hA+'(min)', hO, lang==='ar'?'ملاحظات':'Notes'],
+        ...ws.recs.map(r => {
+          const sp = splitOvertimeBy8PM(r.startTs, r.endTs, r.breakMins, r.overtimeMins, officialMins);
+          return [
+            r.date,
+            formatTime(r.startTs),
+            formatTime(r.endTs),
+            r.breakMins,
+            r.workMins,
+            sp.before8PM,
+            sp.after8PM,
+            isCheckoutAfter8PM(r.endTs) ? 1 : 0,
+            r.notes || ''
+          ];
+        }),
+        [],
+        [lang==='ar'?'المجموع':'Total', '', '', '', ws.totalMins, ws.overtimeBefore8, ws.overtimeAfter8, '', ''],
+      ];
+      const ws2 = XLSX.utils.aoa_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws2, (ws.worker.nameFr || ws.worker.name).slice(0,31));
+    });
+    XLSX.writeFile(wb, `LeBoudoirMajorelle_${filterMonth}.xlsx`);
+    toast('Excel exported ✓', 'success');
+  };
+
+  return (
+    <div className="animate-in">
+      <div className="page-header">
+        <div>
+          <div className="page-title">📊 {t.reports}</div>
+          <div className="page-subtitle">{getMonthLabel(filterMonth, lang)}</div>
+        </div>
+        <div className="flex gap-2">
+          <button className="btn btn-ghost btn-sm" onClick={exportExcel}>📊 {t.exportExcel}</button>
+          <button className="btn btn-primary btn-sm" onClick={exportPDF}>📄 {t.exportPDF}</button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="card mb-6">
+        <div className="grid-2" style={{ gap:12 }}>
+          <div className="form-group" style={{ marginBottom:0 }}>
+            <label className="form-label">{t.month}</label>
+            <select className="form-control" value={filterMonth} onChange={e => setFilterMonth(e.target.value)}>
+              {months.map(m => <option key={m} value={m}>{getMonthLabel(m, lang)}</option>)}
+            </select>
+          </div>
+          <div className="form-group" style={{ marginBottom:0 }}>
+            <label className="form-label">{t.worker}</label>
+            <select className="form-control" value={filterWorker} onChange={e => setFilterWorker(e.target.value)}>
+              <option value="all">{t.allWorkers}</option>
+              {data.workers.filter(w=>!w.isAdmin).map(w => <option key={w.id} value={w.id}>{lang==='ar'?w.name:(w.nameFr||w.name)}</option>)}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Worker cards */}
+      {workerStats.length === 0 ? (
+        <div className="card"><div className="empty-state"><div className="empty-icon">📊</div><div className="empty-title">{t.noRecords}</div></div></div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+          {workerStats.map(ws => (
+            <div key={ws.worker.id} className="worker-report-card">
+              <div className="worker-report-header">
+                <div className="worker-card-avatar" style={{ width:42, height:42, fontSize:16, background:`linear-gradient(135deg, ${ws.worker.color}, ${ws.worker.color}88)` }}>
+                  {(lang==='ar'?ws.worker.name:(ws.worker.nameFr||ws.worker.name)).charAt(0)}
+                </div>
+                <div>
+                  <div style={{ fontSize:15, fontWeight:700 }}>{lang==='ar'?ws.worker.name:(ws.worker.nameFr||ws.worker.name)}</div>
+                  <div style={{ fontSize:12, color:'var(--text-muted)' }}>{lang==='ar'?ws.worker.role:(ws.worker.roleFr||ws.worker.role)}</div>
+                </div>
+                <div style={{ marginRight:'auto' }}></div>
+                <div className="flex gap-2 flex-wrap">
+                  <span className="badge badge-gold">{ws.days} {lang==='ar'?'يوم':'j'}</span>
+                  <span className="badge badge-success">{minutesToHHMM(ws.totalMins, t)}</span>
+                  {ws.overtimeBefore8 > 0 && (
+                    <span className="badge badge-warning" title={t.overtimeBefore8}>
+                      +{minutesToHHMM(ws.overtimeBefore8, t)} · {lang==='ar'?'قبل 20:00':'av. 20h'}
+                    </span>
+                  )}
+                  {ws.overtimeAfter8 > 0 && (
+                    <span className="badge badge-warning" style={{ borderColor:'rgba(231,76,60,0.4)' }} title={t.overtimeAfter8}>
+                      +{minutesToHHMM(ws.overtimeAfter8, t)} · {lang==='ar'?'بعد 20:00':'apr. 20h'}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="worker-report-body">
+                <div className="grid-4" style={{ marginBottom:20, gap:12, display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))' }}>
+                  <div className="stat-card" style={{ padding:14 }}>
+                    <div className="stat-value text-gold" style={{ fontSize:22 }}>{minutesToHHMM(ws.totalMins, t)}</div>
+                    <div className="stat-label">{t.totalHours}</div>
+                  </div>
+                  <div className="stat-card" style={{ padding:14 }}>
+                    <div className="stat-value" style={{ fontSize:22, color:'var(--warning)' }}>{minutesToHHMM(ws.overtimeBefore8, t)}</div>
+                    <div className="stat-label">{t.overtimeBefore8}</div>
+                  </div>
+                  <div className="stat-card" style={{ padding:14 }}>
+                    <div className="stat-value" style={{ fontSize:22, color:'#E67E22' }}>{minutesToHHMM(ws.overtimeAfter8, t)}</div>
+                    <div className="stat-label">{t.overtimeAfter8}</div>
+                  </div>
+                  <div className="stat-card" style={{ padding:14 }}>
+                    <div className="stat-value" style={{ fontSize:22, color:'var(--info)' }}>{minutesToHHMM(ws.avgMins, t)}</div>
+                    <div className="stat-label">{t.avgDailyHours}</div>
+                  </div>
+                </div>
+
+                {/* Daily breakdown */}
+                <div className="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>{t.date}</th>
+                        <th>{t.checkIn}</th>
+                        <th>{t.checkOut}</th>
+                        <th>{t.break}</th>
+                        <th>{t.workHours}</th>
+                        <th>{t.overtimeBefore8}</th>
+                        <th>{t.overtimeAfter8}</th>
+                        <th>{t.checkoutAfter8PM}</th>
+                        <th>{lang==='ar'?'توقيع':'Sig.'}</th>
+                        <th>{t.notes}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ws.recs.sort((a,b) => a.dateTs-b.dateTs).map(r => {
+                        const sp = splitOvertimeBy8PM(r.startTs, r.endTs, r.breakMins, r.overtimeMins, officialMins);
+                        const after8 = isCheckoutAfter8PM(r.endTs);
+                        return (
+                        <tr key={r.id}>
+                          <td><span style={{fontSize:12}}>{r.date}</span></td>
+                          <td><span className="badge badge-success">{formatTime(r.startTs)}</span></td>
+                          <td><span className="badge badge-danger">{formatTime(r.endTs)}</span></td>
+                          <td><span style={{fontSize:12,color:'var(--text-muted)'}}>{r.breakMins}{t.min}</span></td>
+                          <td><strong className="text-gold">{minutesToHHMM(r.workMins, t)}</strong></td>
+                          <td>
+                            {sp.before8PM > 0
+                              ? <span className="badge badge-warning">+{minutesToHHMM(sp.before8PM, t)}</span>
+                              : <span style={{fontSize:12,color:'var(--text-dim)'}}>—</span>}
+                          </td>
+                          <td>
+                            {sp.after8PM > 0
+                              ? <span className="badge badge-warning" style={{ borderColor:'rgba(231,76,60,0.35)' }}>+{minutesToHHMM(sp.after8PM, t)}</span>
+                              : <span style={{fontSize:12,color:'var(--text-dim)'}}>—</span>}
+                          </td>
+                          <td style={{ textAlign:'center' }}>
+                            {after8
+                              ? <span className="badge badge-info" title={t.checkoutAfter8PM}>✓ 20:00+</span>
+                              : <span style={{fontSize:12,color:'var(--text-dim)'}}>—</span>}
+                          </td>
+                          <td style={{fontSize:12}}>
+                            {r.workerSig ? '✍️' : '—'} {r.managerSig ? '👔' : ''}
+                          </td>
+                          <td><span style={{fontSize:12,color:'var(--text-muted)'}}>{r.notes||'—'}</span></td>
+                        </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================================
+// WORKERS PAGE (Admin Only)
+// ============================================================
+const WorkersPage = ({ data, setData, currentWorker, t, lang, toast }) => {
+  const [showAdd, setShowAdd] = useState(false);
+  const [editingWorker, setEditingWorker] = useState(null);
+  const [form, setForm] = useState({ name:'', nameFr:'', role:'حلاق', roleFr:'Coiffeur', pin:'', color:'#3498DB' });
+
+  if (!currentWorker.isAdmin) return null;
+
+  const openAdd = () => {
+    setEditingWorker(null);
+    setForm({ name:'', nameFr:'', role:'حلاق', roleFr:'Coiffeur', pin:'', color:'#3498DB' });
+    setShowAdd(true);
+  };
+
+  const openEdit = (w) => {
+    setShowAdd(false);
+    setEditingWorker(w);
+    setForm({ name:w.name, nameFr:w.nameFr||'', role:w.role, roleFr:w.roleFr||'', pin:w.pin, color:w.color });
+  };
+
+  const handleAdd = () => {
+    if (!form.name || !form.pin) { toast(t.errorFillFields, 'error'); return; }
+    const newW = { id:'w'+Date.now(), ...form, isAdmin: false };
+    setData(prev => {
+      const nd = { ...prev, workers: [...prev.workers, newW] };
+      saveData(nd);
+      return nd;
+    });
+    toast(t.workerAdded, 'success');
+    setShowAdd(false);
+    setForm({ name:'', nameFr:'', role:'حلاق', roleFr:'Coiffeur', pin:'', color:'#3498DB' });
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingWorker) return;
+    if (!form.name || !form.pin) { toast(t.errorFillFields, 'error'); return; }
+    setData(prev => {
+      const nd = {
+        ...prev,
+        workers: prev.workers.map(w => w.id === editingWorker.id ? { ...w, name:form.name, nameFr:form.nameFr, role:form.role, roleFr:form.roleFr, pin:form.pin, color:form.color } : w),
+        records: prev.records.map(r => r.workerId === editingWorker.id ? { ...r, workerName: form.name } : r),
+        auditLog: [{ ts: Date.now(), actor: currentWorker.name, action: `${t.editWorker}: ${form.name}` }, ...prev.auditLog].slice(0,200)
+      };
+      saveData(nd);
+      return nd;
+    });
+    toast(t.updatedSuccess, 'success');
+    setEditingWorker(null);
+    setForm({ name:'', nameFr:'', role:'حلاق', roleFr:'Coiffeur', pin:'', color:'#3498DB' });
+  };
+
+  const handleDelete = (id) => {
+    if (!window.confirm(t.deleteConfirm)) return;
+    setData(prev => {
+      const nd = { ...prev, workers: prev.workers.filter(w => w.id !== id), records: prev.records.filter(r => r.workerId !== id) };
+      saveData(nd);
+      return nd;
+    });
+    toast(t.workerDeleted, 'warning');
+  };
+
+  const colors = ['#C9A84C','#3498DB','#E74C3C','#2ECC71','#9B59B6','#E67E22','#1ABC9C','#E91E63'];
+
+  return (
+    <div className="animate-in">
+      <div className="page-header">
+        <div>
+          <div className="page-title">👥 {t.workers}</div>
+          <div className="page-subtitle">{data.workers.filter(w=>!w.isAdmin).length} {lang==='ar'?'عامل':'employés'}</div>
+        </div>
+        <button className="btn btn-primary" onClick={openAdd}>+ {t.addWorker}</button>
+      </div>
+
+      <div className="workers-grid">
+        {data.workers.filter(w=>!w.isAdmin).map(w => {
+          const monthRecs = data.records.filter(r => r.workerId === w.id && getMonthKey(r.dateTs) === getMonthKey(Date.now()));
+          const monthMins = monthRecs.reduce((s,r) => s+r.workMins, 0);
+          const session = data.activeSessions[w.id] || {};
+          const isActive = session.status === 'working' || session.status === 'break';
+
+          return (
+            <div key={w.id} className="worker-card">
+              {isActive && (
+                <div style={{ position:'absolute', top:12, left:12, width:8, height:8, borderRadius:'50%', background:'var(--success)', animation:'pulse 2s infinite' }}></div>
+              )}
+              <div className="flex items-center gap-3">
+                <div className="worker-card-avatar" style={{ background:`linear-gradient(135deg, ${w.color}, ${w.color}88)` }}>
+                  {(lang==='ar'?w.name:(w.nameFr||w.name)).charAt(0)}
+                </div>
+                <div>
+                  <div className="worker-card-name">{lang==='ar'?w.name:(w.nameFr||w.name)}</div>
+                  <div className="worker-card-role">{lang==='ar'?w.role:(w.roleFr||w.role)}</div>
+                </div>
+              </div>
+
+              <div>
+                <div className="metric-row">
+                  <span className="metric-label">{t.thisMonth}</span>
+                  <span className="metric-value text-gold">{minutesToHHMM(monthMins, t)}</span>
+                </div>
+                <div className="metric-row">
+                  <span className="metric-label">{lang==='ar'?'أيام العمل':'Jours'}</span>
+                  <span className="metric-value">{monthRecs.length}</span>
+                </div>
+                <div className="metric-row">
+                  <span className="metric-label">{t.currentStatus}</span>
+                  <span className={`badge ${isActive ? 'badge-success' : 'badge-muted'}`} style={{fontSize:10}}>
+                    {session.status === 'working' ? t.working : session.status === 'break' ? t.onBreak : t.idle}
+                  </span>
+                </div>
+              </div>
+
+              <div className="worker-card-actions" style={{flexWrap:'wrap'}}>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(w)} title={t.editWorker}>✏️ {t.edit}</button>
+                <button type="button" className="btn btn-danger btn-sm" onClick={() => handleDelete(w.id)}>🗑 {t.delete}</button>
+                <div style={{ background:w.color, width:28, height:28, borderRadius:'50%', border:'2px solid var(--border)' }}></div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Add Worker Modal */}
+      {showAdd && (
+        <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && setShowAdd(false)}>
+          <div className="modal">
+            <div className="modal-header">
+              <div className="modal-title">+ {t.addWorker}</div>
+              <button className="close-btn" onClick={() => { setShowAdd(false); setForm({ name:'', nameFr:'', role:'حلاق', roleFr:'Coiffeur', pin:'', color:'#3498DB' }); }}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="grid-2">
+                <div className="form-group">
+                  <label className="form-label">{t.workerName} (AR)</label>
+                  <input className="form-control" value={form.name} onChange={e => setForm({...form, name:e.target.value})} placeholder="مثال: كريم" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">{t.workerName} (FR)</label>
+                  <input className="form-control" value={form.nameFr} onChange={e => setForm({...form, nameFr:e.target.value})} placeholder="Karim" />
+                </div>
+              </div>
+              <div className="grid-2">
+                <div className="form-group">
+                  <label className="form-label">{t.workerRole} (AR)</label>
+                  <input className="form-control" value={form.role} onChange={e => setForm({...form, role:e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">{t.workerRole} (FR)</label>
+                  <input className="form-control" value={form.roleFr} onChange={e => setForm({...form, roleFr:e.target.value})} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">{t.workerPin}</label>
+                <input type="password" className="form-control" value={form.pin} onChange={e => setForm({...form, pin:e.target.value})} placeholder="••••" maxLength={6} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">{t.workerColor}</label>
+                <div className="flex gap-2 flex-wrap">
+                  {colors.map(c => (
+                    <div
+                      key={c}
+                      onClick={() => setForm({...form, color:c})}
+                      style={{ width:32, height:32, borderRadius:'50%', background:c, cursor:'pointer', border:`3px solid ${form.color===c?'white':'transparent'}`, transition:'var(--transition)' }}
+                    ></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => { setShowAdd(false); setForm({ name:'', nameFr:'', role:'حلاق', roleFr:'Coiffeur', pin:'', color:'#3498DB' }); }}>{t.cancel}</button>
+              <button className="btn btn-primary" onClick={handleAdd}>+ {t.addWorker}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingWorker && (
+        <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && setEditingWorker(null)}>
+          <div className="modal">
+            <div className="modal-header">
+              <div className="modal-title">✏️ {t.editWorker}</div>
+              <button className="close-btn" onClick={() => { setEditingWorker(null); setForm({ name:'', nameFr:'', role:'حلاق', roleFr:'Coiffeur', pin:'', color:'#3498DB' }); }}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="grid-2">
+                <div className="form-group">
+                  <label className="form-label">{t.workerName} (AR)</label>
+                  <input className="form-control" value={form.name} onChange={e => setForm({...form, name:e.target.value})} placeholder="مثال: كريم" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">{t.workerName} (FR)</label>
+                  <input className="form-control" value={form.nameFr} onChange={e => setForm({...form, nameFr:e.target.value})} placeholder="Karim" />
+                </div>
+              </div>
+              <div className="grid-2">
+                <div className="form-group">
+                  <label className="form-label">{t.workerRole} (AR)</label>
+                  <input className="form-control" value={form.role} onChange={e => setForm({...form, role:e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">{t.workerRole} (FR)</label>
+                  <input className="form-control" value={form.roleFr} onChange={e => setForm({...form, roleFr:e.target.value})} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">{t.workerPin}</label>
+                <input type="password" className="form-control" value={form.pin} onChange={e => setForm({...form, pin:e.target.value})} placeholder="••••" maxLength={6} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">{t.workerColor}</label>
+                <div className="flex gap-2 flex-wrap">
+                  {colors.map(c => (
+                    <div
+                      key={c}
+                      onClick={() => setForm({...form, color:c})}
+                      style={{ width:32, height:32, borderRadius:'50%', background:c, cursor:'pointer', border:`3px solid ${form.color===c?'white':'transparent'}`, transition:'var(--transition)' }}
+                    ></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => { setEditingWorker(null); setForm({ name:'', nameFr:'', role:'حلاق', roleFr:'Coiffeur', pin:'', color:'#3498DB' }); }}>{t.cancel}</button>
+              <button className="btn btn-primary" onClick={handleSaveEdit}>{t.save}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================================
+// SETTINGS PAGE
+// ============================================================
+const SettingsPage = ({ data, setData, t, lang, setLang, toast }) => {
+  const [officialHours, setOfficialHours] = useState(data.settings.officialHoursPerDay);
+  const [adminPin, setAdminPin] = useState(data.settings.adminPin);
+
+  const saveSetting = (key, val) => {
+    setData(prev => {
+      const nd = { ...prev, settings: { ...prev.settings, [key]: val } };
+      saveData(nd);
+      return nd;
+    });
+    toast(t.updatedSuccess, 'success');
+  };
+
+  return (
+    <div className="animate-in">
+      <div className="page-header">
+        <div>
+          <div className="page-title">⚙️ {t.settings}</div>
+        </div>
+      </div>
+
+      <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+        <div className="card">
+          <div className="card-title">🕐 {lang==='ar'?'إعدادات العمل':'Paramètres de travail'}</div>
+          <div className="settings-row">
+            <div>
+              <div className="settings-label">{t.officialHours}</div>
+              <div className="settings-desc">{lang==='ar'?'الحد الفاصل بين الساعات العادية والإضافية':'Seuil heures normales / supplémentaires'}</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                className="form-control"
+                style={{ width:80, textAlign:'center' }}
+                value={officialHours}
+                min={1} max={24}
+                onChange={e => setOfficialHours(Number(e.target.value))}
+              />
+              <span className="text-muted" style={{fontSize:13}}>{t.hoursPerDay}</span>
+              <button className="btn btn-primary btn-sm" onClick={() => saveSetting('officialHoursPerDay', officialHours)}>{t.save}</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-title">🔐 {lang==='ar'?'الأمان':'Sécurité'}</div>
+          <div className="settings-row">
+            <div>
+              <div className="settings-label">{t.adminPin}</div>
+              <div className="settings-desc">{lang==='ar'?'رمز دخول المشرف':'Code PIN administrateur'}</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="password"
+                className="form-control"
+                style={{ width:120 }}
+                value={adminPin}
+                onChange={e => setAdminPin(e.target.value)}
+                maxLength={8}
+              />
+              <button className="btn btn-primary btn-sm" onClick={() => saveSetting('adminPin', adminPin)}>{t.save}</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-title">🌍 {t.language}</div>
+          <div className="settings-row">
+            <div>
+              <div className="settings-label">{t.language}</div>
+            </div>
+            <div className="flex gap-2">
+              <button className={`btn ${lang==='fr'?'btn-primary':'btn-ghost'}`} onClick={() => { setLang('fr'); saveSetting('language','fr'); }}>🇫🇷 {t.french}</button>
+              <button className={`btn ${lang==='ar'?'btn-primary':'btn-ghost'}`} onClick={() => { setLang('ar'); saveSetting('language','ar'); }}>🇲🇦 {t.arabic}</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-title">📋 {t.auditLog}</div>
+          <div style={{ maxHeight:320, overflowY:'auto' }}>
+            {data.auditLog.length === 0 ? (
+              <div className="text-muted text-sm text-center p-4">{lang==='ar'?'لا توجد تعديلات':'Aucune modification'}</div>
+            ) : (
+              data.auditLog.map((entry, i) => (
+                <div key={i} className="audit-item">
+                  <div className="audit-time">{new Date(entry.ts).toLocaleDateString(lang==='ar'?'ar-MA':'fr-FR')} {new Date(entry.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>
+                  <div className="audit-action"><span className="audit-actor">{entry.actor}</span> — {entry.action}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// MAIN APP
+// ============================================================
+const App = () => {
+  const [data, setData] = useState(initData);
+  const [currentWorker, setCurrentWorker] = useState(null);
+  const [activePage, setActivePage] = useState('dashboard');
+  const [lang, setLangState] = useState(data.settings?.language || 'fr');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { toasts, toast } = useToast();
+
+  const t = translations[lang];
+
+  const setLang = (l) => {
+    setLangState(l);
+    document.documentElement.lang = l;
+    document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr';
+  };
+
+  useEffect(() => {
+    setLang(lang);
+  }, [lang]);
+
+  // Check forgot checkout
+  useEffect(() => {
+    if (!currentWorker) return;
+    const session = data.activeSessions[currentWorker.id] || {};
+    if (session.status === 'working' && session.date !== todayKey()) {
+      toast(t.forgotCheckout, 'warning');
+    }
+  }, [currentWorker]);
+
+  const handleLogout = () => {
+    setCurrentWorker(null);
+    setActivePage('dashboard');
+  };
+
+  const navItems = [
+    { id:'dashboard', icon:'📊', label:t.dashboard },
+    { id:'timeTracking', icon:'⏱', label:t.timeTracking },
+    { id:'history', icon:'📋', label:t.history },
+    { id:'reports', icon:'📈', label:t.reports },
+    ...(currentWorker?.isAdmin ? [{ id:'workers', icon:'👥', label:t.workers }] : []),
+    { id:'settings', icon:'⚙️', label:t.settings },
+  ];
+
+  if (!currentWorker) {
+    return (
+      <>
+        <LoginScreen
+          workers={data.workers}
+          settings={data.settings}
+          onLogin={setCurrentWorker}
+          lang={lang}
+          setLang={setLang}
+          t={t}
+        />
+        <ToastContainer toasts={toasts} />
+      </>
+    );
+  }
+
+  const renderPage = () => {
+    const props = { data, setData, currentWorker, t, lang, toast };
+    switch(activePage) {
+      case 'dashboard': return <DashboardPage {...props} />;
+      case 'timeTracking': return <TimeTrackingPage {...props} />;
+      case 'history': return <RecordsPage {...props} />;
+      case 'reports': return <ReportsPage {...props} />;
+      case 'workers': return currentWorker.isAdmin ? <WorkersPage {...props} /> : <DashboardPage {...props} />;
+      case 'settings': return <SettingsPage {...props} setLang={setLang} />;
+      default: return <DashboardPage {...props} />;
+    }
+  };
+
+  return (
+    <div className="app-container">
+      {/* Mobile header */}
+      <div className="mobile-header" style={{ background:'var(--dark-2)', borderBottom:'1px solid var(--border)', position:'sticky', top:0, zIndex:50, display:'none' }}>
+        <div className="flex items-center gap-2">
+          <span style={{fontSize:20}}>✂️</span>
+          <span style={{fontWeight:800, color:'var(--gold)', fontSize:16}}>{t.appName}</span>
+        </div>
+        <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
+      </div>
+
+      {/* Sidebar overlay for mobile */}
+      {sidebarOpen && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:99 }} onClick={() => setSidebarOpen(false)} />
+      )}
+
+      {/* Sidebar */}
+      <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+        <div className="sidebar-logo">
+          <div className="logo-mark">✂️</div>
+          <div className="logo-text">{t.appName}</div>
+          <div className="logo-sub">{t.appSub}</div>
+        </div>
+
+        <div className="sidebar-nav">
+          <div className="nav-section">
+            {navItems.map(item => (
+              <div
+                key={item.id}
+                className={`nav-item ${activePage === item.id ? 'active' : ''}`}
+                onClick={() => { setActivePage(item.id); setSidebarOpen(false); }}
+              >
+                <span className="nav-icon">{item.icon}</span>
+                {item.label}
+              </div>
+            ))}
+          </div>
+
+          {/* Lang switcher in sidebar */}
+          <div className="nav-section">
+            <div className="nav-section-title">{t.language}</div>
+            <div className="flex gap-2" style={{ paddingRight:8 }}>
+              <button className={`mode-chip ${lang==='fr'?'active':''}`} onClick={() => setLang('fr')} style={{flex:1,textAlign:'center'}}>🇫🇷 FR</button>
+              <button className={`mode-chip ${lang==='ar'?'active':''}`} onClick={() => setLang('ar')} style={{flex:1,textAlign:'center'}}>🇲🇦 AR</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="sidebar-footer">
+          <div className="worker-chip">
+            <div className="worker-avatar" style={{ background:`linear-gradient(135deg, ${currentWorker.color}, ${currentWorker.color}88)` }}>
+              {(lang==='ar' ? currentWorker.name : (currentWorker.nameFr||currentWorker.name)).charAt(0)}
+            </div>
+            <div style={{flex:1}}>
+              <div className="worker-name">{lang==='ar' ? currentWorker.name : (currentWorker.nameFr||currentWorker.name)}</div>
+              <div className="worker-role">{lang==='ar' ? currentWorker.role : (currentWorker.roleFr||currentWorker.role)}</div>
+            </div>
+            <button className="btn btn-ghost btn-sm btn-icon" onClick={handleLogout} title={t.logout} style={{padding:6}}>↩</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main */}
+      <div className="main-content">
+        {renderPage()}
+      </div>
+
+      <ToastContainer toasts={toasts} />
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+<!-- Mobile sidebar toggle via CSS media query -->
+<style>
+@media (max-width: 768px) {
+  .mobile-header { display: flex !important; }
+  .main-content { margin-right: 0 !important; margin-left: 0 !important; padding-top: 0 !important; }
+}
+</style>
+</body>
+</html>
