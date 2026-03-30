@@ -323,7 +323,7 @@ export default function TimeTrackingPage({ data, setData, currentWorker, t, lang
             <div className="lux-dash-card-title"><i className="fas fa-receipt" /> <span>{lang === 'ar' ? 'سجل اليوم' : 'Récap du jour'}</span></div>
           </div>
           <div className="lux-dash-card-body">
-            <div className="lux-dash-stats" style={{ marginBottom: 0 }}>
+            <div className="lux-dash-stats" style={{ marginBottom: 0, gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
               <div className="lux-stat-card" style={{ '--lux-stat-accent': '#D4AF37' } as React.CSSProperties}>
                 <div className="lux-stat-glow" />
                 <div className="lux-stat-icon-wrap"><i className="fas fa-right-to-bracket" /></div>

@@ -124,10 +124,19 @@ export default function App() {
         <div className="lux-mobile-header">
           <div className="lux-mobile-header-left">
             <div className="lux-mobile-logo-icon"><i className="fas fa-cut" /></div>
-            <span className="lux-mobile-logo-text">{t.appName}</span>
+            <div className="lux-mobile-logo-info">
+              <span className="lux-mobile-logo-text">{t.appName}</span>
+              <span className="lux-mobile-logo-sub">{t.appSub}</span>
+            </div>
           </div>
-          <button className="lux-mobile-menu-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
-            <i className={`fas ${sidebarOpen ? 'fa-times' : 'fa-bars'}`} />
+          <button className="lux-mobile-header-right" onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+            <div className="lux-mobile-user-info">
+              <span className="lux-mobile-user-name">{workerDisplayName()}</span>
+              <span className="lux-mobile-user-role">{workerDisplayRole()}</span>
+            </div>
+            <div className="lux-mobile-user-avatar" style={{ background: `linear-gradient(135deg, ${currentWorker.color}, ${currentWorker.color}88)` }}>
+              {workerDisplayName().charAt(0)}
+            </div>
           </button>
         </div>
 
@@ -202,6 +211,20 @@ export default function App() {
         <div className="lux-main-content">
           {renderPage()}
         </div>
+
+        {/* Bottom tab bar (mobile only) */}
+        <nav className="lux-bottom-tabs">
+          {navItems.slice(0, 5).map((item) => (
+            <button
+              key={item.id}
+              className={`lux-bottom-tab ${activePage === item.id ? 'active' : ''}`}
+              onClick={() => { setActivePage(item.id); setSidebarOpen(false); }}
+            >
+              <i className={`fas ${item.faIcon}`} />
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
 
         <ToastContainer toasts={toasts} />
       </div>

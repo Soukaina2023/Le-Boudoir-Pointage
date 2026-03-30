@@ -12,5 +12,5 @@ export default function LiveClock() {
   const mm = String(now.getMinutes()).padStart(2, '0');
   const ss = String(now.getSeconds()).padStart(2, '0');
 
-  return <div className="timer-clock">{hh}:{mm}:{ss}</div>;
+  return <div className="timer-clock" style={{ fontSize: 'clamp(28px, 8vw, 56px)' }}>{hh}:{mm}:{ss}</div>;
 }

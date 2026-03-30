@@ -58,7 +58,7 @@ export default function ReportsPage({ data, t, lang, toast }: Props) {
 
       <div className="lux-dash-card" style={{ marginBottom: 24 }}>
         <div className="lux-dash-card-body">
-          <div className="grid-2" style={{ gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
             <div className="lux-form-group" style={{ marginBottom: 0 }}>
               <label className="lux-form-label">{t.month}</label>
               <select className="lux-form-control" value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)}>
@@ -101,11 +101,11 @@ export default function ReportsPage({ data, t, lang, toast }: Props) {
 
               {/* Stats */}
               <div className="lux-dash-card-body">
-                <div className="lux-dash-stats" style={{ marginBottom: 20 }}>
-                  <div className="lux-stat-card" style={{ '--lux-stat-accent': '#D4AF37' } as React.CSSProperties}><div className="lux-stat-glow" /><div className="lux-stat-value lux-stat-gold" style={{ fontSize: 22 }}>{minutesToHHMM(ws.totalMins, t)}</div><div className="lux-stat-label">{t.totalHours}</div></div>
-                  <div className="lux-stat-card" style={{ '--lux-stat-accent': '#F39C12' } as React.CSSProperties}><div className="lux-stat-glow" /><div className="lux-stat-value lux-stat-warn" style={{ fontSize: 22 }}>{minutesToHHMM(ws.overtimeBefore8, t)}</div><div className="lux-stat-label">{t.overtimeBefore8}</div></div>
-                  <div className="lux-stat-card" style={{ '--lux-stat-accent': '#E67E22' } as React.CSSProperties}><div className="lux-stat-glow" /><div className="lux-stat-value" style={{ fontSize: 22, color: '#E67E22' }}>{minutesToHHMM(ws.overtimeAfter8, t)}</div><div className="lux-stat-label">{t.overtimeAfter8}</div></div>
-                  <div className="lux-stat-card" style={{ '--lux-stat-accent': '#3498DB' } as React.CSSProperties}><div className="lux-stat-glow" /><div className="lux-stat-value" style={{ fontSize: 22, color: '#3498DB' }}>{minutesToHHMM(ws.avgMins, t)}</div><div className="lux-stat-label">{t.avgDailyHours}</div></div>
+                <div className="lux-dash-stats" style={{ marginBottom: 20, gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
+                  <div className="lux-stat-card" style={{ '--lux-stat-accent': '#D4AF37' } as React.CSSProperties}><div className="lux-stat-glow" /><div className="lux-stat-value lux-stat-gold" style={{ fontSize: 'clamp(18px, 3vw, 22px)' }}>{minutesToHHMM(ws.totalMins, t)}</div><div className="lux-stat-label">{t.totalHours}</div></div>
+                  <div className="lux-stat-card" style={{ '--lux-stat-accent': '#F39C12' } as React.CSSProperties}><div className="lux-stat-glow" /><div className="lux-stat-value lux-stat-warn" style={{ fontSize: 'clamp(18px, 3vw, 22px)' }}>{minutesToHHMM(ws.overtimeBefore8, t)}</div><div className="lux-stat-label">{t.overtimeBefore8}</div></div>
+                  <div className="lux-stat-card" style={{ '--lux-stat-accent': '#E67E22' } as React.CSSProperties}><div className="lux-stat-glow" /><div className="lux-stat-value" style={{ fontSize: 'clamp(18px, 3vw, 22px)', color: '#E67E22' }}>{minutesToHHMM(ws.overtimeAfter8, t)}</div><div className="lux-stat-label">{t.overtimeAfter8}</div></div>
+                  <div className="lux-stat-card" style={{ '--lux-stat-accent': '#3498DB' } as React.CSSProperties}><div className="lux-stat-glow" /><div className="lux-stat-value" style={{ fontSize: 'clamp(18px, 3vw, 22px)', color: '#3498DB' }}>{minutesToHHMM(ws.avgMins, t)}</div><div className="lux-stat-label">{t.avgDailyHours}</div></div>
                 </div>
 
                 <div className="lux-table-wrap">

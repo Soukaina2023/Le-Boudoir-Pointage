@@ -41,7 +41,7 @@ export default function DashboardPage({ data, currentWorker, t, lang }: Props) {
   return (
     <div className="lux-dash">
       {/* Header */}
-      <div className="lux-dash-header">
+      <div className="lux-dash-header" style={{ flexDirection: 'column', gap: 8 }}>
         <div className="lux-dash-header-text">
           <h1 className="lux-dash-title">
             <i className="fas fa-chart-line lux-dash-title-icon" />
@@ -49,15 +49,10 @@ export default function DashboardPage({ data, currentWorker, t, lang }: Props) {
           </h1>
           <p className="lux-dash-subtitle">{getMonthLabel(thisMonth, lang)}</p>
         </div>
-        <div className="lux-dash-header-decoration">
-          <span className="lux-dash-deco-line" />
-          <i className="fas fa-gem lux-dash-deco-gem" />
-          <span className="lux-dash-deco-line" />
-        </div>
       </div>
 
-      {/* Stats grid */}
-      <div className="lux-dash-stats">
+      {/* Stats */}
+      <div className="lux-dash-stats-stack">
         <div className="lux-stat-card" style={{ '--lux-stat-accent': '#D4AF37' } as React.CSSProperties}>
           <div className="lux-stat-glow" />
           <div className="lux-stat-icon-wrap">

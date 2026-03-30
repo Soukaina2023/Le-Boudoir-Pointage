@@ -111,7 +111,7 @@ export default function RecordsPage({ data, setData, currentWorker, t, lang, toa
       {/* Filters */}
       <div className="lux-dash-card" style={{ marginBottom: 24 }}>
         <div className="lux-dash-card-body">
-          <div className="grid-2" style={{ gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: currentWorker.isAdmin ? 'repeat(auto-fit, minmax(200px, 1fr))' : '1fr', gap: 12 }}>
             <div className="lux-form-group" style={{ marginBottom: 0 }}>
               <label className="lux-form-label">{t.filterMonth}</label>
               <select className="lux-form-control" value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)}>
