@@ -14,16 +14,18 @@ export default function Modal({ title, onClose, footer, children, maxWidth }: Pr
   };
 
   return (
-    <div className="modal-backdrop" onClick={handleBackdropClick}>
-      <div className="modal" style={maxWidth ? { maxWidth } : undefined}>
+    <div className="lux-modal-backdrop" onClick={handleBackdropClick}>
+      <div className="lux-modal" style={maxWidth ? { maxWidth } : undefined}>
         {title !== undefined && (
-          <div className="modal-header">
-            <div className="modal-title">{title}</div>
-            <button className="close-btn" onClick={onClose}>×</button>
+          <div className="lux-modal-header">
+            <div className="lux-modal-title">{title}</div>
+            <button className="lux-modal-close" onClick={onClose}>
+              <i className="fas fa-times" />
+            </button>
           </div>
         )}
-        <div className="modal-body">{children}</div>
-        {footer && <div className="modal-footer">{footer}</div>}
+        <div className="lux-modal-body">{children}</div>
+        {footer && <div className="lux-modal-footer">{footer}</div>}
       </div>
     </div>
   );

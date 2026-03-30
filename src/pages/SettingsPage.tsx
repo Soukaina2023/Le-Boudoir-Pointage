@@ -25,105 +25,89 @@ export default function SettingsPage({ data, setData, t, lang, setLang, toast }:
   };
 
   return (
-    <div className="animate-in">
-      <div className="page-header">
-        <div>
-          <div className="page-title">⚙️ {t.settings}</div>
+    <div className="lux-dash">
+      <div className="lux-dash-header">
+        <div className="lux-dash-header-text">
+          <h1 className="lux-dash-title"><i className="fas fa-gear lux-dash-title-icon" />{t.settings}</h1>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <div className="card">
-          <div className="card-title">🕐 {lang === 'ar' ? 'إعدادات العمل' : 'Paramètres de travail'}</div>
-          <div className="settings-row">
-            <div>
-              <div className="settings-label">{t.officialHours}</div>
-              <div className="settings-desc">
-                {lang === 'ar' ? 'الحد الفاصل بين الساعات العادية والإضافية' : 'Seuil heures normales / supplémentaires'}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {/* Work settings */}
+        <div className="lux-dash-card">
+          <div className="lux-dash-card-header">
+            <div className="lux-dash-card-title"><i className="fas fa-briefcase" /> <span>{lang === 'ar' ? 'إعدادات العمل' : 'Paramètres de travail'}</span></div>
+          </div>
+          <div className="lux-dash-card-body">
+            <div className="lux-settings-row">
+              <div>
+                <div className="lux-settings-label">{t.officialHours}</div>
+                <div className="lux-settings-desc">{lang === 'ar' ? 'الحد الفاصل بين الساعات العادية والإضافية' : 'Seuil heures normales / supplémentaires'}</div>
+              </div>
+              <div className="lux-settings-control">
+                <input type="number" className="lux-form-control" style={{ width: 80, textAlign: 'center' }} value={officialHours} min={1} max={24} onChange={(e) => setOfficialHours(Number(e.target.value))} />
+                <span className="lux-settings-unit">{t.hoursPerDay}</span>
+                <button className="lux-btn lux-btn-primary lux-btn-sm" onClick={() => saveSetting('officialHoursPerDay', officialHours)}>{t.save}</button>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                className="form-control"
-                style={{ width: 80, textAlign: 'center' }}
-                value={officialHours}
-                min={1}
-                max={24}
-                onChange={(e) => setOfficialHours(Number(e.target.value))}
-              />
-              <span className="text-muted" style={{ fontSize: 13 }}>{t.hoursPerDay}</span>
-              <button className="btn btn-primary btn-sm" onClick={() => saveSetting('officialHoursPerDay', officialHours)}>
-                {t.save}
-              </button>
-            </div>
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-title">🔐 {lang === 'ar' ? 'الأمان' : 'Sécurité'}</div>
-          <div className="settings-row">
-            <div>
-              <div className="settings-label">{t.adminPin}</div>
-              <div className="settings-desc">
-                {lang === 'ar' ? 'رمز دخول المشرف' : 'Code PIN administrateur'}
+        {/* Security */}
+        <div className="lux-dash-card">
+          <div className="lux-dash-card-header">
+            <div className="lux-dash-card-title"><i className="fas fa-shield-halved" /> <span>{lang === 'ar' ? 'الأمان' : 'Sécurité'}</span></div>
+          </div>
+          <div className="lux-dash-card-body">
+            <div className="lux-settings-row">
+              <div>
+                <div className="lux-settings-label">{t.adminPin}</div>
+                <div className="lux-settings-desc">{lang === 'ar' ? 'رمز دخول المشرف' : 'Code PIN administrateur'}</div>
+              </div>
+              <div className="lux-settings-control">
+                <input type="password" className="lux-form-control" style={{ width: 120 }} value={adminPin} onChange={(e) => setAdminPin(e.target.value)} maxLength={8} />
+                <button className="lux-btn lux-btn-primary lux-btn-sm" onClick={() => saveSetting('adminPin', adminPin)}>{t.save}</button>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="password"
-                className="form-control"
-                style={{ width: 120 }}
-                value={adminPin}
-                onChange={(e) => setAdminPin(e.target.value)}
-                maxLength={8}
-              />
-              <button className="btn btn-primary btn-sm" onClick={() => saveSetting('adminPin', adminPin)}>
-                {t.save}
-              </button>
+          </div>
+        </div>
+
+        {/* Language */}
+        <div className="lux-dash-card">
+          <div className="lux-dash-card-header">
+            <div className="lux-dash-card-title"><i className="fas fa-globe" /> <span>{t.language}</span></div>
+          </div>
+          <div className="lux-dash-card-body">
+            <div className="lux-settings-row">
+              <div><div className="lux-settings-label">{t.language}</div></div>
+              <div className="lux-settings-control">
+                <button className={`lux-btn ${lang === 'fr' ? 'lux-btn-primary' : 'lux-btn-ghost'}`} onClick={() => { setLang('fr'); saveSetting('language', 'fr'); }}>🇫🇷 {t.french}</button>
+                <button className={`lux-btn ${lang === 'ar' ? 'lux-btn-primary' : 'lux-btn-ghost'}`} onClick={() => { setLang('ar'); saveSetting('language', 'ar'); }}>🇲🇦 {t.arabic}</button>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-title">🌍 {t.language}</div>
-          <div className="settings-row">
-            <div>
-              <div className="settings-label">{t.language}</div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                className={`btn ${lang === 'fr' ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => { setLang('fr'); saveSetting('language', 'fr'); }}
-              >
-                🇫🇷 {t.french}
-              </button>
-              <button
-                className={`btn ${lang === 'ar' ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => { setLang('ar'); saveSetting('language', 'ar'); }}
-              >
-                🇲🇦 {t.arabic}
-              </button>
-            </div>
+        {/* Audit log */}
+        <div className="lux-dash-card">
+          <div className="lux-dash-card-header">
+            <div className="lux-dash-card-title"><i className="fas fa-list-check" /> <span>{t.auditLog}</span></div>
           </div>
-        </div>
-
-        <div className="card">
-          <div className="card-title">📋 {t.auditLog}</div>
-          <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+          <div className="lux-dash-card-body" style={{ maxHeight: 360, overflowY: 'auto' }}>
             {data.auditLog.length === 0 ? (
-              <div className="text-muted text-sm text-center p-4">
-                {lang === 'ar' ? 'لا توجد تعديلات' : 'Aucune modification'}
+              <div className="lux-empty" style={{ padding: '30px 20px' }}>
+                <div className="lux-empty-icon"><i className="fas fa-clipboard-check" /></div>
+                <div className="lux-empty-desc">{lang === 'ar' ? 'لا توجد تعديلات' : 'Aucune modification'}</div>
               </div>
             ) : (
               data.auditLog.map((entry, i) => (
-                <div key={i} className="audit-item">
-                  <div className="audit-time">
+                <div key={i} className="lux-audit-item">
+                  <div className="lux-audit-time">
                     {new Date(entry.ts).toLocaleDateString(lang === 'ar' ? 'ar-MA' : 'fr-FR')}{' '}
                     {new Date(entry.ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                   </div>
-                  <div className="audit-action">
-                    <span className="audit-actor">{entry.actor}</span> — {entry.action}
+                  <div className="lux-audit-action">
+                    <span className="lux-audit-actor">{entry.actor}</span> — {entry.action}
                   </div>
                 </div>
               ))

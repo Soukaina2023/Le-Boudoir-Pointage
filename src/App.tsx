@@ -17,6 +17,15 @@ import SettingsPage from './pages/SettingsPage';
 
 type PageId = 'dashboard' | 'timeTracking' | 'history' | 'reports' | 'workers' | 'settings';
 
+const NAV_ICONS: Record<PageId, string> = {
+  dashboard: 'fa-chart-line',
+  timeTracking: 'fa-stopwatch',
+  history: 'fa-clock-rotate-left',
+  reports: 'fa-chart-pie',
+  workers: 'fa-users',
+  settings: 'fa-gear',
+};
+
 export default function App() {
   const [data, setData] = useState<AppData>(initData);
   const [currentWorker, setCurrentWorker] = useState<Worker | null>(null);
@@ -64,13 +73,13 @@ export default function App() {
     setActivePage('dashboard');
   };
 
-  const navItems: { id: PageId; icon: string; label: string }[] = [
-    { id: 'dashboard', icon: '📊', label: t.dashboard },
-    { id: 'timeTracking', icon: '⏱', label: t.timeTracking },
-    { id: 'history', icon: '📋', label: t.history },
-    { id: 'reports', icon: '📈', label: t.reports },
-    ...(currentWorker?.isAdmin ? [{ id: 'workers' as PageId, icon: '👥', label: t.workers }] : []),
-    { id: 'settings', icon: '⚙️', label: t.settings },
+  const navItems: { id: PageId; icon: string; faIcon: string; label: string }[] = [
+    { id: 'dashboard', icon: '📊', faIcon: NAV_ICONS.dashboard, label: t.dashboard },
+    { id: 'timeTracking', icon: '⏱', faIcon: NAV_ICONS.timeTracking, label: t.timeTracking },
+    { id: 'history', icon: '📋', faIcon: NAV_ICONS.history, label: t.history },
+    { id: 'reports', icon: '📈', faIcon: NAV_ICONS.reports, label: t.reports },
+    ...(currentWorker?.isAdmin ? [{ id: 'workers' as PageId, icon: '👥', faIcon: NAV_ICONS.workers, label: t.workers }] : []),
+    { id: 'settings', icon: '⚙️', faIcon: NAV_ICONS.settings, label: t.settings },
   ];
 
   if (!currentWorker) {
@@ -95,8 +104,7 @@ export default function App() {
   const renderPage = () => {
     switch (activePage) {
       case 'dashboard':    return <DashboardPage {...sharedProps} />;
-      case 'timeTracking':
-        return <TimeTrackingPage {...sharedProps} />;
+      case 'timeTracking': return <TimeTrackingPage {...sharedProps} />;
       case 'history':      return <RecordsPage {...sharedProps} />;
       case 'reports':      return <ReportsPage {...sharedProps} />;
       case 'workers':      return currentWorker.isAdmin ? <WorkersPage {...sharedProps} /> : <DashboardPage {...sharedProps} />;
@@ -112,83 +120,91 @@ export default function App() {
     <>
       {demoBanner}
       <div className="app-container">
-      <div className="mobile-header">
-        <div className="flex items-center gap-2">
-          <span style={{ fontSize: 20 }}>✂️</span>
-          <span style={{ fontWeight: 800, color: 'var(--gold)', fontSize: 16 }}>{t.appName}</span>
-        </div>
-        <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
-      </div>
-
-      {sidebarOpen && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 99 }}
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <div className="sidebar-logo">
-          <div className="logo-mark">✂️</div>
-          <div className="logo-text">{t.appName}</div>
-          <div className="logo-sub">{t.appSub}</div>
+        {/* Mobile header */}
+        <div className="lux-mobile-header">
+          <div className="lux-mobile-header-left">
+            <div className="lux-mobile-logo-icon"><i className="fas fa-cut" /></div>
+            <span className="lux-mobile-logo-text">{t.appName}</span>
+          </div>
+          <button className="lux-mobile-menu-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            <i className={`fas ${sidebarOpen ? 'fa-times' : 'fa-bars'}`} />
+          </button>
         </div>
 
-        <div className="sidebar-nav">
-          <div className="nav-section">
-            {navItems.map((item) => (
-              <div
-                key={item.id}
-                className={`nav-item ${activePage === item.id ? 'active' : ''}`}
-                onClick={() => { setActivePage(item.id); setSidebarOpen(false); }}
-              >
-                <span className="nav-icon">{item.icon}</span>
-                {item.label}
+        {/* Sidebar overlay */}
+        {sidebarOpen && (
+          <div className="lux-sidebar-overlay" onClick={() => setSidebarOpen(false)} />
+        )}
+
+        {/* Sidebar */}
+        <div className={`lux-sidebar ${sidebarOpen ? 'open' : ''}`}>
+          <div className="lux-sidebar-logo">
+            <div className="lux-sidebar-logo-mark">
+              <i className="fas fa-cut" />
+              <div className="lux-sidebar-logo-ring" />
+            </div>
+            <div className="lux-sidebar-logo-text">{t.appName}</div>
+            <div className="lux-sidebar-logo-sub">{t.appSub}</div>
+          </div>
+
+          <div className="lux-sidebar-nav">
+            <div className="lux-nav-section">
+              {navItems.map((item) => (
+                <div
+                  key={item.id}
+                  className={`lux-nav-item ${activePage === item.id ? 'active' : ''}`}
+                  onClick={() => { setActivePage(item.id); setSidebarOpen(false); }}
+                >
+                  <span className="lux-nav-icon">
+                    <i className={`fas ${item.faIcon}`} />
+                  </span>
+                  <span className="lux-nav-label">{item.label}</span>
+                  {activePage === item.id && <span className="lux-nav-active-dot" />}
+                </div>
+              ))}
+            </div>
+
+            <div className="lux-nav-section">
+              <div className="lux-nav-section-title">{t.language}</div>
+              <div className="lux-lang-row">
+                <button
+                  className={`lux-lang-btn ${lang === 'fr' ? 'active' : ''}`}
+                  onClick={() => setLang('fr')}
+                >
+                  🇫🇷 FR
+                </button>
+                <button
+                  className={`lux-lang-btn ${lang === 'ar' ? 'active' : ''}`}
+                  onClick={() => setLang('ar')}
+                >
+                  🇲🇦 AR
+                </button>
               </div>
-            ))}
+            </div>
           </div>
 
-          <div className="nav-section">
-            <div className="nav-section-title">{t.language}</div>
-            <div className="flex gap-2" style={{ paddingRight: 8 }}>
-              <button
-                className={`mode-chip ${lang === 'fr' ? 'active' : ''}`}
-                onClick={() => setLang('fr')}
-                style={{ flex: 1, textAlign: 'center' }}
-              >
-                🇫🇷 FR
-              </button>
-              <button
-                className={`mode-chip ${lang === 'ar' ? 'active' : ''}`}
-                onClick={() => setLang('ar')}
-                style={{ flex: 1, textAlign: 'center' }}
-              >
-                🇲🇦 AR
+          <div className="lux-sidebar-footer">
+            <div className="lux-sidebar-user">
+              <div className="lux-sidebar-avatar" style={{ background: `linear-gradient(135deg, ${currentWorker.color}, ${currentWorker.color}88)` }}>
+                {workerDisplayName().charAt(0)}
+              </div>
+              <div className="lux-sidebar-user-info">
+                <div className="lux-sidebar-user-name">{workerDisplayName()}</div>
+                <div className="lux-sidebar-user-role">{workerDisplayRole()}</div>
+              </div>
+              <button className="lux-sidebar-logout" onClick={handleLogout} title={t.logout}>
+                <i className="fas fa-sign-out-alt" />
               </button>
             </div>
           </div>
         </div>
 
-        <div className="sidebar-footer">
-          <div className="worker-chip">
-            <div className="worker-avatar" style={{ background: `linear-gradient(135deg, ${currentWorker.color}, ${currentWorker.color}88)` }}>
-              {workerDisplayName().charAt(0)}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div className="worker-name">{workerDisplayName()}</div>
-              <div className="worker-role">{workerDisplayRole()}</div>
-            </div>
-            <button className="btn btn-ghost btn-sm btn-icon" onClick={handleLogout} title={t.logout} style={{ padding: 6 }}>↩</button>
-          </div>
+        <div className="lux-main-content">
+          {renderPage()}
         </div>
-      </div>
 
-      <div className="main-content">
-        {renderPage()}
+        <ToastContainer toasts={toasts} />
       </div>
-
-      <ToastContainer toasts={toasts} />
-    </div>
     </>
   );
 }

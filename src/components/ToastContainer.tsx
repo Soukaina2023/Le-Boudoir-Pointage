@@ -5,18 +5,18 @@ interface Props {
 }
 
 const ICONS: Record<string, string> = {
-  success: '✓',
-  error: '✗',
-  warning: '⚠',
-  info: 'ℹ',
+  success: 'fa-check-circle',
+  error: 'fa-circle-xmark',
+  warning: 'fa-triangle-exclamation',
+  info: 'fa-circle-info',
 };
 
 export default function ToastContainer({ toasts }: Props) {
   return (
-    <div className="toast-container">
+    <div className="lux-toast-container">
       {toasts.map((t) => (
-        <div key={t.id} className={`toast toast-${t.type}`}>
-          <span>{ICONS[t.type] ?? 'ℹ'}</span>
+        <div key={t.id} className={`lux-toast lux-toast-${t.type}`}>
+          <i className={`fas ${ICONS[t.type] ?? 'fa-circle-info'}`} />
           <span>{t.msg}</span>
         </div>
       ))}
