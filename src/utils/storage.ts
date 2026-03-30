@@ -36,8 +36,10 @@ export function initData(): AppData {
 
   return {
     workers: [
-      { id: 'w1', name: 'محمد', nameFr: 'Mohammed', role: 'حلاق', roleFr: 'Coiffeur', pin: '1234', color: '#C9A84C', isAdmin: false },
-      { id: 'w2', name: 'أحمد', nameFr: 'Ahmed', role: 'حلاق', roleFr: 'Coiffeur', pin: '5678', color: '#3498DB', isAdmin: false },
+      { id: 'w1', name: 'سكينة', nameFr: 'Soukaina', role: 'حلاقة', roleFr: 'Coiffeuse', pin: '', color: '#C9A84C', isAdmin: false },
+      { id: 'w2', name: 'فدوى', nameFr: 'Fadwa', role: 'حلاقة', roleFr: 'Coiffeuse', pin: '', color: '#3498DB', isAdmin: false },
+      { id: 'w4', name: 'سكينة 2', nameFr: 'Soukaina-2', role: 'حلاقة', roleFr: 'Coiffeuse', pin: '', color: '#E91E63', isAdmin: false },
+      { id: 'w5', name: 'رشيدة', nameFr: 'Rachida', role: 'حلاقة', roleFr: 'Coiffeuse', pin: '', color: '#2ECC71', isAdmin: false },
       { id: 'w3', name: 'المشرف', nameFr: 'Responsable', role: 'مشرف', roleFr: 'Responsable', pin: '0000', color: '#E74C3C', isAdmin: true },
     ],
     records: [],
