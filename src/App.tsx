@@ -47,17 +47,7 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lang]);
 
-  useEffect(() => {
-    if (!isDemoMode) return;
-    document.body.classList.add('has-demo-banner');
-    return () => document.body.classList.remove('has-demo-banner');
-  }, []);
-
-  const demoBanner = isDemoMode ? (
-    <div role="status" className="demo-mode-banner">
-      Demo Mode (No backend connected)
-    </div>
-  ) : null;
+  const demoBanner = null;
 
   useEffect(() => {
     if (!currentWorker) return;
